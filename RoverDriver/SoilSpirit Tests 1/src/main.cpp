@@ -6,16 +6,26 @@ Servo frontRightServo;
 Servo backLeftServo;
 Servo backRightServo;
 
-const int FRONT_LEFT_PIN = 26;
-const int FRONT_RIGHT_PIN = 33;
-const int BACK_LEFT_PIN = 32;
-const int BACK_RIGHT_PIN = 25;
+const int FRONT_LEFT_PIN = 16;
+const int FRONT_RIGHT_PIN = 17;
+const int BACK_LEFT_PIN = 18;
+const int BACK_RIGHT_PIN = 19;
 
-// L298N MOTOR SETUP FRONT SET ONLY
-const int MOTOR_LEFT_IN1 = 2;   // Left motor control pin 1
-const int MOTOR_LEFT_IN2 = 4;   // Left motor control pin 2
-const int MOTOR_RIGHT_IN3 = 5;  // Right motor control pin 1
-const int MOTOR_RIGHT_IN4 = 13; // Right motor control pin 2
+// L298N MOTOR SETUP
+const int F_MOTOR_LEFT_IN1 = 2;   // F-Left motor control pin 1
+const int F_MOTOR_LEFT_IN2 = 4;   // F-Left motor control pin 2
+const int F_MOTOR_RIGHT_IN3 = 5;  // F-Right motor control pin 1
+const int F_MOTOR_RIGHT_IN4 = 13; // F-Right motor control pin 2
+
+const int M_MOTOR_LEFT_IN1 = 14;   // M-Left motor control pin 1
+const int M_MOTOR_LEFT_IN2 = 12;   // M-Left motor control pin 2
+const int M_MOTOR_RIGHT_IN3 = 15;  // M-Right motor control pin 1
+const int M_MOTOR_RIGHT_IN4 = 27; // M-Right motor control pin 2
+
+const int B_MOTOR_LEFT_IN1 = 26;   // B-Left motor control pin 1
+const int B_MOTOR_LEFT_IN2 = 25;   // B-Left motor control pin 2
+const int B_MOTOR_RIGHT_IN3 = 33;  // B-Right motor control pin 1
+const int B_MOTOR_RIGHT_IN4 = 32; // B-Right motor control pin 2
 
 // CONSTANTS
 const int CENTER_ANGLE = 90;
@@ -24,6 +34,8 @@ const int LEFT_ANGLE = 60;
 const int MOVEMENT_DELAY = 2000;
 
 bool motorsEnabled = false;
+bool servosEnabled = false;
+bool fullTestSuite = false;
 
 void testServos() {
   Serial.println("Testing front left servo");
@@ -43,7 +55,45 @@ void testServos() {
   delay(500);
 }
 
+void stopMotors() {
+  digitalWrite(F_MOTOR_LEFT_IN1, LOW);
+  digitalWrite(F_MOTOR_LEFT_IN2, LOW);
+  digitalWrite(F_MOTOR_RIGHT_IN3, LOW);
+  digitalWrite(F_MOTOR_RIGHT_IN4, LOW);
+
+  digitalWrite(M_MOTOR_LEFT_IN1, LOW);
+  digitalWrite(M_MOTOR_LEFT_IN2, LOW);
+  digitalWrite(M_MOTOR_RIGHT_IN3, LOW);
+  digitalWrite(M_MOTOR_RIGHT_IN4, LOW);
+
+  digitalWrite(B_MOTOR_LEFT_IN1, LOW);
+  digitalWrite(B_MOTOR_LEFT_IN2, LOW);
+  digitalWrite(B_MOTOR_RIGHT_IN3, LOW);
+  digitalWrite(B_MOTOR_RIGHT_IN4, LOW);
+}
+
+void motorsForward() {
+  // Front motors
+  digitalWrite(F_MOTOR_LEFT_IN1, HIGH);
+  digitalWrite(F_MOTOR_LEFT_IN2, LOW);
+  digitalWrite(F_MOTOR_RIGHT_IN3, HIGH);
+  digitalWrite(F_MOTOR_RIGHT_IN4, LOW);
+
+  // Middle motors
+  digitalWrite(M_MOTOR_LEFT_IN1, HIGH);
+  digitalWrite(M_MOTOR_LEFT_IN2, LOW);
+  digitalWrite(M_MOTOR_RIGHT_IN3, HIGH);
+  digitalWrite(M_MOTOR_RIGHT_IN4, LOW);
+
+  // Back motors
+  digitalWrite(B_MOTOR_LEFT_IN1, HIGH);
+  digitalWrite(B_MOTOR_LEFT_IN2, LOW);
+  digitalWrite(B_MOTOR_RIGHT_IN3, HIGH);
+  digitalWrite(B_MOTOR_RIGHT_IN4, LOW);
+}
+
 void setup() {
+  Serial.begin(9600);
   Serial.println("Initialization...");
   
   // SERVO TIMERS
@@ -67,77 +117,81 @@ void setup() {
   Serial.println("Servos initialized");
   
   // MOTOR PINMODES
-  pinMode(MOTOR_LEFT_IN1, OUTPUT);
-  pinMode(MOTOR_LEFT_IN2, OUTPUT);
-  pinMode(MOTOR_RIGHT_IN3, OUTPUT);
-  pinMode(MOTOR_RIGHT_IN4, OUTPUT);
+  pinMode(F_MOTOR_LEFT_IN1, OUTPUT);
+  pinMode(F_MOTOR_LEFT_IN2, OUTPUT);
+  pinMode(F_MOTOR_RIGHT_IN3, OUTPUT);
+  pinMode(F_MOTOR_RIGHT_IN4, OUTPUT);
+
+  pinMode(M_MOTOR_LEFT_IN1, OUTPUT);
+  pinMode(M_MOTOR_LEFT_IN2, OUTPUT);
+  pinMode(M_MOTOR_RIGHT_IN3, OUTPUT);
+  pinMode(M_MOTOR_RIGHT_IN4, OUTPUT);
+
+  pinMode(B_MOTOR_LEFT_IN1, OUTPUT);
+  pinMode(B_MOTOR_LEFT_IN2, OUTPUT);
+  pinMode(B_MOTOR_RIGHT_IN3, OUTPUT);
+  pinMode(B_MOTOR_RIGHT_IN4, OUTPUT);
   
   // ENSURE ALL MOTORS ARE STOPPED
-  digitalWrite(MOTOR_LEFT_IN1, LOW);
-  digitalWrite(MOTOR_LEFT_IN2, LOW);
-  digitalWrite(MOTOR_RIGHT_IN3, LOW);
-  digitalWrite(MOTOR_RIGHT_IN4, LOW);
-  
+  stopMotors();
   Serial.println("Motor pins initialized");
   
   // INDIVIDUAL SERVO TESTS
-  Serial.println("Testing servos...");
-  testServos();
+  // Serial.println("Testing servos...");
+  // testServos();
   
   // DISABLE MOTORS FOR SAFETY
   motorsEnabled = false;
-  Serial.println("Initialization complete. Motors disabled for safety.");
+  servosEnabled = false;
+  fullTestSuite = false;
+  Serial.println("Initialization complete. Tests disabled for safety.");
 }
 
 void loop() {
-  // Turn servos right
-  Serial.println("Turning right");
-  frontLeftServo.write(RIGHT_ANGLE);
-  frontRightServo.write(RIGHT_ANGLE);
-  backLeftServo.write(RIGHT_ANGLE);
-  backRightServo.write(RIGHT_ANGLE);
-  delay(MOVEMENT_DELAY);
-  
-  // Center servos
-  Serial.println("Centering");
-  frontLeftServo.write(CENTER_ANGLE);
-  frontRightServo.write(CENTER_ANGLE);
-  backLeftServo.write(CENTER_ANGLE);
-  backRightServo.write(CENTER_ANGLE);
-  delay(MOVEMENT_DELAY);
-  
-  // Turn servos left
-  Serial.println("Turning left");
-  frontLeftServo.write(LEFT_ANGLE);
-  frontRightServo.write(LEFT_ANGLE);
-  backLeftServo.write(LEFT_ANGLE);
-  backRightServo.write(LEFT_ANGLE);
-  delay(MOVEMENT_DELAY);
-  
-  // Center servos
-  Serial.println("Centering");
-  frontLeftServo.write(CENTER_ANGLE);
-  frontRightServo.write(CENTER_ANGLE);
-  backLeftServo.write(CENTER_ANGLE);
-  backRightServo.write(CENTER_ANGLE);
-  delay(MOVEMENT_DELAY);
-  
-  // COMMENT OUT TO DISABLE MOTOR TESTS
+  // COMMENT OUT TO ENABLE DIFFERENT TESTS TESTS
   motorsEnabled = true;
-  
-  if (motorsEnabled) {
+  // servosEnabled = true;
+  // fullTestSuite = true;
+  if(servosEnabled || fullTestSuite) {
+    // Turn servos right
+    Serial.println("Turning right");
+    frontLeftServo.write(RIGHT_ANGLE);
+    frontRightServo.write(RIGHT_ANGLE);
+    backLeftServo.write(RIGHT_ANGLE);
+    backRightServo.write(RIGHT_ANGLE);
+    delay(MOVEMENT_DELAY);
+    
+    // Center servos
+    Serial.println("Centering");
+    frontLeftServo.write(CENTER_ANGLE);
+    frontRightServo.write(CENTER_ANGLE);
+    backLeftServo.write(CENTER_ANGLE);
+    backRightServo.write(CENTER_ANGLE);
+    delay(MOVEMENT_DELAY);
+    
+    // Turn servos left
+    Serial.println("Turning left");
+    frontLeftServo.write(LEFT_ANGLE);
+    frontRightServo.write(LEFT_ANGLE);
+    backLeftServo.write(LEFT_ANGLE);
+    backRightServo.write(LEFT_ANGLE);
+    delay(MOVEMENT_DELAY);
+    
+    // Center servos
+    Serial.println("Centering");
+    frontLeftServo.write(CENTER_ANGLE);
+    frontRightServo.write(CENTER_ANGLE);
+    backLeftServo.write(CENTER_ANGLE);
+    backRightServo.write(CENTER_ANGLE);
+    delay(MOVEMENT_DELAY);
+  }
+  if (motorsEnabled || fullTestSuite) {
     Serial.println("Testing motors forward");
-    digitalWrite(MOTOR_LEFT_IN1, HIGH);
-    digitalWrite(MOTOR_LEFT_IN2, LOW);
-    digitalWrite(MOTOR_RIGHT_IN3, HIGH);
-    digitalWrite(MOTOR_RIGHT_IN4, LOW);
+    motorsForward();
     delay(1000);
     
     Serial.println("Stopping motors");
-    digitalWrite(MOTOR_LEFT_IN1, LOW);
-    digitalWrite(MOTOR_LEFT_IN2, LOW);
-    digitalWrite(MOTOR_RIGHT_IN3, LOW);
-    digitalWrite(MOTOR_RIGHT_IN4, LOW);
-    delay(1000);
+    stopMotors();
+    delay(2000);
   }
 }
