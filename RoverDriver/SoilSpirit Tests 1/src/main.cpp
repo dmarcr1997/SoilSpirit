@@ -6,10 +6,10 @@ Servo frontRightServo;
 Servo backLeftServo;
 Servo backRightServo;
 
-const int FRONT_LEFT_PIN = 16;
-const int FRONT_RIGHT_PIN = 17;
-const int BACK_LEFT_PIN = 18;
-const int BACK_RIGHT_PIN = 19;
+const int SERVO_FRONT_LEFT_PIN = 16;
+const int SERVO_FRONT_RIGHT_PIN = 17;
+const int SERVO_BACK_LEFT_PIN = 18;
+const int SERVO_BACK_RIGHT_PIN = 19;
 
 // L298N MOTOR SETUP
 const int F_MOTOR_LEFT_IN1 = 2;   // F-Left motor control pin 1
@@ -109,10 +109,10 @@ void setup() {
   backRightServo.setPeriodHertz(50);
   
   // SERVO ATTACHMENTS
-  frontLeftServo.attach(FRONT_LEFT_PIN, 500, 2500);
-  frontRightServo.attach(FRONT_RIGHT_PIN, 500, 2500);
-  backLeftServo.attach(BACK_LEFT_PIN, 500, 2500);
-  backRightServo.attach(BACK_RIGHT_PIN, 500, 2500);
+  frontLeftServo.attach(SERVO_FRONT_LEFT_PIN, 500, 2500);
+  frontRightServo.attach(SERVO_FRONT_RIGHT_PIN, 500, 2500);
+  backLeftServo.attach(SERVO_BACK_LEFT_PIN, 500, 2500);
+  backRightServo.attach(SERVO_BACK_RIGHT_PIN, 500, 2500);
   
   Serial.println("Servos initialized");
   
@@ -137,8 +137,8 @@ void setup() {
   Serial.println("Motor pins initialized");
   
   // INDIVIDUAL SERVO TESTS
-  // Serial.println("Testing servos...");
-  // testServos();
+  Serial.println("Testing servos...");
+  testServos();
   
   // DISABLE MOTORS FOR SAFETY
   motorsEnabled = false;
@@ -149,9 +149,9 @@ void setup() {
 
 void loop() {
   // COMMENT OUT TO ENABLE DIFFERENT TESTS TESTS
-  motorsEnabled = true;
+  // motorsEnabled = true;
   // servosEnabled = true;
-  // fullTestSuite = true;
+  fullTestSuite = true;
   if(servosEnabled || fullTestSuite) {
     // Turn servos right
     Serial.println("Turning right");
