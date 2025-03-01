@@ -34,8 +34,9 @@ const int B_MOTOR_RIGHT_IN4 = 32; // B-Right motor control pin 2
 const int CENTER_ANGLE = 90;
 const int RIGHT_ANGLE = 120;
 const int LEFT_ANGLE = 60; 
+const int HTTP_REQUEST_INTERVAL = 500; 
 const int MOVEMENT_DELAY = 2000;
-const int HTTP_REQUEST_INTERVAL = 1000; 
+const int HTTP_REQUEST_INTERVAL = 2500; 
 
 //COMMANDS
 enum Command {
@@ -91,24 +92,6 @@ void connectToWiFi() {
   Serial.println("WiFi connected");
 }
 
-void testServos() {
-  Serial.println("Testing front left servo");
-  frontLeftServo.write(CENTER_ANGLE);
-  delay(500);
-  
-  Serial.println("Testing front right servo");
-  frontRightServo.write(CENTER_ANGLE);
-  delay(500);
-  
-  Serial.println("Testing back left servo");
-  backLeftServo.write(CENTER_ANGLE);
-  delay(500);
-  
-  Serial.println("Testing back right servo");
-  backRightServo.write(CENTER_ANGLE);
-  delay(500);
-}
-
 void stopMotors() {
   digitalWrite(F_MOTOR_LEFT_IN1, LOW);
   digitalWrite(F_MOTOR_LEFT_IN2, LOW);
@@ -144,7 +127,7 @@ void motorsForward() {
   digitalWrite(B_MOTOR_LEFT_IN2, LOW);
   digitalWrite(B_MOTOR_RIGHT_IN3, HIGH);
   digitalWrite(B_MOTOR_RIGHT_IN4, LOW);
-  delay(2000);
+  delay(MOVEMENT_DELAY);
 }
 
 void motorsBackwards() {
@@ -165,7 +148,7 @@ void motorsBackwards() {
   digitalWrite(B_MOTOR_LEFT_IN2, HIGH);
   digitalWrite(B_MOTOR_RIGHT_IN3, LOW);
   digitalWrite(B_MOTOR_RIGHT_IN4, HIGH);
-  delay(2000);
+  delay(MOVEMENT_DELAY);
 }
 
 void centerWheels() {
@@ -183,7 +166,7 @@ void leftTurn() {
   backLeftServo.write(LEFT_ANGLE);
   backRightServo.write(LEFT_ANGLE);
   motorsForward();
-  delay(MOVEMENT_DELAY);
+  delay(RETURN_DELAY);
   centerWheels();
 }
 
@@ -194,7 +177,7 @@ void rightTurn() {
     backLeftServo.write(RIGHT_ANGLE);
     backRightServo.write(RIGHT_ANGLE);
     motorsForward();
-    delay(MOVEMENT_DELAY);
+    delay(RETURN_DELAY);
     centerWheels();
 }
 
