@@ -9,7 +9,7 @@
 
 extern String lastCommand;
 
-void captureAndAnalyzeImage();
+String captureAndAnalyzeImage();
 void setupApiServer();
 void handleAPIServer();
 

@@ -11,12 +11,6 @@
 #include "camera_pins.h"
 #include "secrets.h"
 
-// Function prototypes
-String encodeImageToBase64(const uint8_t* imageData, size_t imageSize);
-void captureAndAnalyzeImage();
-
-void processSerialCommands();
-
 void setup() {
   Serial.begin(115200);
   Serial.setDebugOutput(true);
@@ -71,7 +65,7 @@ void setup() {
   // camera init
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
-    Serial.printf("Camera init failed with error 0x%x", err);
+    Serial.printf("[Main] Camera init failed with error 0x%x", err);
     return;
   }
 
@@ -95,7 +89,8 @@ void setup() {
     Serial.print(".");
   }
   Serial.println("");
-  Serial.println("WiFi connected");
+  Serial.println("[Main] WiFi connected");
+  setupApiServer();
 }
 
 void loop() {

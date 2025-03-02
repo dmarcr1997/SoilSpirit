@@ -34,7 +34,7 @@ const int B_MOTOR_RIGHT_IN4 = 32; // B-Right motor control pin 2
 const int CENTER_ANGLE = 90;
 const int RIGHT_ANGLE = 120;
 const int LEFT_ANGLE = 60; 
-const int HTTP_REQUEST_INTERVAL = 500; 
+const int RETURN_DELAY = 500; 
 const int MOVEMENT_DELAY = 2000;
 const int HTTP_REQUEST_INTERVAL = 2500; 
 
@@ -48,7 +48,7 @@ enum Command {
 };
 
 //Global Vars
-String lastCommand = "STOP";
+String lastCommand = "FULL_STOP";
 unsigned long lastRequestTime = 0; 
 
 String retrieveCommandFromCamera() {
@@ -110,6 +110,7 @@ void stopMotors() {
 }
 
 void motorsForward() {
+  Serial.println("Moving Forward");
   // Front motors
   digitalWrite(F_MOTOR_LEFT_IN1, HIGH);
   digitalWrite(F_MOTOR_LEFT_IN2, LOW);
@@ -131,6 +132,7 @@ void motorsForward() {
 }
 
 void motorsBackwards() {
+  Serial.println("Moving Backward");
   // Front motors
   digitalWrite(F_MOTOR_LEFT_IN1, LOW);
   digitalWrite(F_MOTOR_LEFT_IN2, HIGH);
@@ -157,6 +159,7 @@ void centerWheels() {
   frontRightServo.write(CENTER_ANGLE);
   backLeftServo.write(CENTER_ANGLE);
   backRightServo.write(CENTER_ANGLE);
+  delay(MOVEMENT_DELAY);
 }
 
 void leftTurn() {
@@ -165,29 +168,29 @@ void leftTurn() {
   frontRightServo.write(LEFT_ANGLE);
   backLeftServo.write(LEFT_ANGLE);
   backRightServo.write(LEFT_ANGLE);
-  motorsForward();
-  delay(RETURN_DELAY);
-  centerWheels();
+  delay(MOVEMENT_DELAY);
 }
 
 void rightTurn() {
-    Serial.println("Turning right");
-    frontLeftServo.write(RIGHT_ANGLE);
-    frontRightServo.write(RIGHT_ANGLE);
-    backLeftServo.write(RIGHT_ANGLE);
-    backRightServo.write(RIGHT_ANGLE);
-    motorsForward();
-    delay(RETURN_DELAY);
-    centerWheels();
+  Serial.println("Turning right");
+  frontLeftServo.write(RIGHT_ANGLE);
+  frontRightServo.write(RIGHT_ANGLE);
+  backLeftServo.write(RIGHT_ANGLE);
+  backRightServo.write(RIGHT_ANGLE);
+  delay(MOVEMENT_DELAY);
 }
 
 void executeCommand(String command) {
-  if (command == "LEFT"){ 
+  if (command == "TURN_LEFT"){ 
     leftTurn();
-    lastCommand = "LEFT TURN";
-  } else if (command == "RIGHT"){
+    motorsForward();
+    centerWheels();
+    lastCommand = "TURN_LEFT";
+  } else if (command == "TURN_RIGHT"){
     rightTurn();
-    lastCommand = "RIGHT TURN";
+    motorsForward();
+    centerWheels();
+    lastCommand = "TURN_RIGHT";
   } else if (command =="FORWARD") {
     motorsForward();
     lastCommand = "FORWARD";
@@ -197,7 +200,7 @@ void executeCommand(String command) {
   } else {
     centerWheels();
     stopMotors();
-    lastCommand = "STOP";
+    lastCommand = "FULL_STOP";
   }
 }
 
