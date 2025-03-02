@@ -36,19 +36,14 @@ const int RIGHT_ANGLE = 120;
 const int LEFT_ANGLE = 60; 
 const int RETURN_DELAY = 500; 
 const int MOVEMENT_DELAY = 2000;
-const int HTTP_REQUEST_INTERVAL = 2500; 
+const int HTTP_REQUEST_INTERVAL = 3000; 
 
-//COMMANDS
-enum Command {
-  LEFT_TURN,
-  RIGHT_TURN,
-  FORWARD,
-  BACKWARD,
-  STOP
-};
 
 //Global Vars
 String lastCommand = "FULL_STOP";
+unsigned long movementStartTime = 0;
+bool isMoving = false;
+
 unsigned long lastRequestTime = 0; 
 
 String retrieveCommandFromCamera() {
@@ -128,7 +123,6 @@ void motorsForward() {
   digitalWrite(B_MOTOR_LEFT_IN2, LOW);
   digitalWrite(B_MOTOR_RIGHT_IN3, HIGH);
   digitalWrite(B_MOTOR_RIGHT_IN4, LOW);
-  delay(MOVEMENT_DELAY);
 }
 
 void motorsBackwards() {
@@ -150,7 +144,6 @@ void motorsBackwards() {
   digitalWrite(B_MOTOR_LEFT_IN2, HIGH);
   digitalWrite(B_MOTOR_RIGHT_IN3, LOW);
   digitalWrite(B_MOTOR_RIGHT_IN4, HIGH);
-  delay(MOVEMENT_DELAY);
 }
 
 void centerWheels() {
@@ -159,7 +152,6 @@ void centerWheels() {
   frontRightServo.write(CENTER_ANGLE);
   backLeftServo.write(CENTER_ANGLE);
   backRightServo.write(CENTER_ANGLE);
-  delay(MOVEMENT_DELAY);
 }
 
 void leftTurn() {
@@ -168,7 +160,6 @@ void leftTurn() {
   frontRightServo.write(LEFT_ANGLE);
   backLeftServo.write(LEFT_ANGLE);
   backRightServo.write(LEFT_ANGLE);
-  delay(MOVEMENT_DELAY);
 }
 
 void rightTurn() {
@@ -177,30 +168,44 @@ void rightTurn() {
   frontRightServo.write(RIGHT_ANGLE);
   backLeftServo.write(RIGHT_ANGLE);
   backRightServo.write(RIGHT_ANGLE);
-  delay(MOVEMENT_DELAY);
 }
 
 void executeCommand(String command) {
-  if (command == "TURN_LEFT"){ 
-    leftTurn();
-    motorsForward();
-    centerWheels();
-    lastCommand = "TURN_LEFT";
-  } else if (command == "TURN_RIGHT"){
-    rightTurn();
-    motorsForward();
-    centerWheels();
-    lastCommand = "TURN_RIGHT";
-  } else if (command =="FORWARD") {
-    motorsForward();
-    lastCommand = "FORWARD";
-  } else if (command == "BACKWARD"){
-    motorsBackwards();
-    lastCommand = "BACKWARD";
-  } else {
-    centerWheels();
+  if (command == "STOP" || command == "FULL_STOP") {
     stopMotors();
+    centerWheels();
+    isMoving = false;
     lastCommand = "FULL_STOP";
+    Serial.println("Stopping Rover...");
+    return;
+  }
+  if (!isMoving) {
+    lastCommand = command;
+    if (command == "TURN_LEFT"){ 
+      isMoving = true;
+      leftTurn();
+      motorsForward();
+      centerWheels();
+    } else if (command == "TURN_RIGHT"){
+      isMoving = true;
+      rightTurn();
+      motorsForward();
+      centerWheels();
+    } else if (command =="FORWARD") {
+      isMoving = true;
+      motorsForward();
+    } else if (command == "BACKWARD"){
+      isMoving = true;
+      motorsBackwards();
+    } else {
+      isMoving = false;
+      centerWheels();
+      stopMotors();
+    }
+    Serial.print("Executing command: ");
+    Serial.println(command);
+  } else {
+    Serial.println("Vehicle is currently moveing" + lastCommand);
   }
 }
 
@@ -244,7 +249,6 @@ void setup() {
   pinMode(B_MOTOR_RIGHT_IN3, OUTPUT);
   pinMode(B_MOTOR_RIGHT_IN4, OUTPUT);
   
-  // ENSURE ALL MOTORS ARE STOPPED
   stopMotors();
 }
 
@@ -259,9 +263,20 @@ void loop() {
     lastRequestTime = time;
     String newCommand = retrieveCommandFromCamera();
     Serial.println("Received command: " + newCommand);
-    
-    if (newCommand != lastCommand) {
-      executeCommand(newCommand);
+    executeCommand(newCommand);
+  }
+
+  if(isMoving) {
+    if(time - movementStartTime >= MOVEMENT_DELAY) {
+      if (lastCommand == "TURN_LEFT" || lastCommand == "TURN_RIGHT") {
+        
+        centerWheels();
+        stopMotors();
+      } else {
+        stopMotors();
+      }
+      isMoving = false;
+      Serial.println("Finished Command: " + lastCommand);
     }
   }
 }

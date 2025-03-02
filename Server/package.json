@@ -1,0 +1,12 @@
+{
+  "name": "rover-command-server",
+  "version": "1.0.0",
+  "description": "Command queue server for rover and camera",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
