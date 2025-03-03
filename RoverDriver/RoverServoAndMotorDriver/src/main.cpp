@@ -1,4 +1,5 @@
 #include <ESP32Servo.h>
+#include <ArduinoJson.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include "secrets.h"
@@ -34,21 +35,19 @@ const int B_MOTOR_RIGHT_IN4 = 32; // B-Right motor control pin 2
 const int CENTER_ANGLE = 90;
 const int RIGHT_ANGLE = 120;
 const int LEFT_ANGLE = 60; 
-const int RETURN_DELAY = 500; 
+const int TURN_DELAY = 500; 
 const int MOVEMENT_DELAY = 2000;
-const int HTTP_REQUEST_INTERVAL = 3000; 
+const int HTTP_REQUEST_INTERVAL = 3000;
 
 
 //Global Vars
-String lastCommand = "FULL_STOP";
-unsigned long movementStartTime = 0;
+String currentCommand = "FULL_STOP";
+unsigned long lastRequestTime = 0;
 bool isMoving = false;
 
-unsigned long lastRequestTime = 0; 
-
-String retrieveCommandFromCamera() {
+String retrieveCommandFromServer() {
   HTTPClient http;
-  String serverPath = String(serverEndpoint) + "?lastCommand=" + lastCommand;
+  String serverPath = String(serverEndpoint);
 
   http.begin(serverPath.c_str());
 
@@ -56,18 +55,27 @@ String retrieveCommandFromCamera() {
   String command = "STOP";
 
   if (httpResponseCode > 0) {
-    Serial.print("HTTP Response code: ");
+    Serial.print("[Rover-Server] HTTP Response code: ");
     Serial.println(httpResponseCode);
     String payload = http.getString();
-    Serial.println("Response: " + payload);
+    Serial.println("[Rover-Server] Response: " + payload);
 
     if (payload.length() > 0) {
-      command = payload;
+      DynamicJsonDocument doc(256);
+      DeserializationError error = deserializeJson(doc, payload);
+
+      if(!error) {
+        command = doc["command"].as<String>();
+      } else {
+        Serial.println("[Rover-Server] JSON PARSE ERRROR: ");
+        Serial.println(error.c_str());
+        command = "FULL_STOP";
+      }
     }
   } else {
-    Serial.print("Error code: ");
+    Serial.print("[Rover-Server]  Error code: ");
     Serial.println(httpResponseCode);
-    Serial.println("Failed to get command, using STOP");
+    Serial.println("[Rover-Server] Failed to get command, using STOP");
   }
 
   http.end();
@@ -75,7 +83,7 @@ String retrieveCommandFromCamera() {
 }
 
 void connectToWiFi() {
-  Serial.println("Connecting...");
+  Serial.println("[Rover] Connecting...");
   WiFi.begin(ssid, password);
   WiFi.setSleep(false);
 
@@ -84,10 +92,11 @@ void connectToWiFi() {
     Serial.print(".");
   }
   Serial.println("");
-  Serial.println("WiFi connected");
+  Serial.println("[Rover] WiFi connected");
 }
 
 void stopMotors() {
+  Serial.println("[Rover] Stopping...");
   digitalWrite(F_MOTOR_LEFT_IN1, LOW);
   digitalWrite(F_MOTOR_LEFT_IN2, LOW);
   digitalWrite(F_MOTOR_RIGHT_IN3, LOW);
@@ -105,7 +114,7 @@ void stopMotors() {
 }
 
 void motorsForward() {
-  Serial.println("Moving Forward");
+  Serial.println("[Rover] Moving Forward");
   // Front motors
   digitalWrite(F_MOTOR_LEFT_IN1, HIGH);
   digitalWrite(F_MOTOR_LEFT_IN2, LOW);
@@ -126,7 +135,7 @@ void motorsForward() {
 }
 
 void motorsBackwards() {
-  Serial.println("Moving Backward");
+  Serial.println("[Rover] Moving Backward");
   // Front motors
   digitalWrite(F_MOTOR_LEFT_IN1, LOW);
   digitalWrite(F_MOTOR_LEFT_IN2, HIGH);
@@ -147,7 +156,7 @@ void motorsBackwards() {
 }
 
 void centerWheels() {
-  Serial.println("Centering");
+  Serial.println("[Rover] Centering");
   frontLeftServo.write(CENTER_ANGLE);
   frontRightServo.write(CENTER_ANGLE);
   backLeftServo.write(CENTER_ANGLE);
@@ -155,7 +164,7 @@ void centerWheels() {
 }
 
 void leftTurn() {
-  Serial.println("Turning left");
+  Serial.println("[Rover] Turning left");
   frontLeftServo.write(LEFT_ANGLE);
   frontRightServo.write(LEFT_ANGLE);
   backLeftServo.write(LEFT_ANGLE);
@@ -163,7 +172,7 @@ void leftTurn() {
 }
 
 void rightTurn() {
-  Serial.println("Turning right");
+  Serial.println("[Rover] Turning right");
   frontLeftServo.write(RIGHT_ANGLE);
   frontRightServo.write(RIGHT_ANGLE);
   backLeftServo.write(RIGHT_ANGLE);
@@ -175,43 +184,49 @@ void executeCommand(String command) {
     stopMotors();
     centerWheels();
     isMoving = false;
-    lastCommand = "FULL_STOP";
-    Serial.println("Stopping Rover...");
+    currentCommand = "FULL_STOP";
+    Serial.println("[Rover] Stopping...");
     return;
   }
   if (!isMoving) {
-    lastCommand = command;
+    currentCommand = command;
+    isMoving = true;
     if (command == "TURN_LEFT"){ 
-      isMoving = true;
       leftTurn();
+      delay(TURN_DELAY);
       motorsForward();
+      delay(MOVEMENT_DELAY);
       centerWheels();
+      delay(TURN_DELAY);
     } else if (command == "TURN_RIGHT"){
-      isMoving = true;
       rightTurn();
+      delay(TURN_DELAY);
       motorsForward();
+      delay(MOVEMENT_DELAY);
       centerWheels();
+      delay(TURN_DELAY);
     } else if (command =="FORWARD") {
-      isMoving = true;
       motorsForward();
+      delay(MOVEMENT_DELAY);
     } else if (command == "BACKWARD"){
-      isMoving = true;
       motorsBackwards();
+      delay(MOVEMENT_DELAY);
     } else {
-      isMoving = false;
       centerWheels();
+      delay(TURN_DELAY);
       stopMotors();
     }
-    Serial.print("Executing command: ");
+    isMoving = false;
+    Serial.print("[Rover] Executing command: ");
     Serial.println(command);
   } else {
-    Serial.println("Vehicle is currently moveing" + lastCommand);
+    Serial.println("[Rover] Vehicle is currently moving" + currentCommand);
   }
 }
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("Initialization...");
+  Serial.println("[Rover] Initialization...");
   
   // SERVO TIMERS
   ESP32PWM::allocateTimer(0);
@@ -231,7 +246,7 @@ void setup() {
   backLeftServo.attach(SERVO_BACK_LEFT_PIN, 500, 2500);
   backRightServo.attach(SERVO_BACK_RIGHT_PIN, 500, 2500);
   
-  Serial.println("Servos initialized");
+  Serial.println("[Rover] Servos initialized");
   
   // MOTOR PINMODES
   pinMode(F_MOTOR_LEFT_IN1, OUTPUT);
@@ -248,35 +263,22 @@ void setup() {
   pinMode(B_MOTOR_LEFT_IN2, OUTPUT);
   pinMode(B_MOTOR_RIGHT_IN3, OUTPUT);
   pinMode(B_MOTOR_RIGHT_IN4, OUTPUT);
-  
-  stopMotors();
+
+  Serial.println("[Rover] Motors initialized");
 }
 
 void loop() {
   if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("WiFi disconnected. Reconnecting...");
+    Serial.println("[Rover] WiFi disconnected. Reconnecting...");
     connectToWiFi();
   }
+  unsigned long currentTime = millis();
 
-  unsigned long time = millis();
-  if (time - lastRequestTime >= HTTP_REQUEST_INTERVAL) {
-    lastRequestTime = time;
-    String newCommand = retrieveCommandFromCamera();
-    Serial.println("Received command: " + newCommand);
+  if (!isMoving && currentTime - lastRequestTime > HTTP_REQUEST_INTERVAL) {
+    lastRequestTime = currentTime;
+    String newCommand = retrieveCommandFromServer();
+    Serial.println("[Rover] Received command: " + newCommand);
     executeCommand(newCommand);
   }
 
-  if(isMoving) {
-    if(time - movementStartTime >= MOVEMENT_DELAY) {
-      if (lastCommand == "TURN_LEFT" || lastCommand == "TURN_RIGHT") {
-        
-        centerWheels();
-        stopMotors();
-      } else {
-        stopMotors();
-      }
-      isMoving = false;
-      Serial.println("Finished Command: " + lastCommand);
-    }
-  }
 }
