@@ -1,43 +1,36 @@
 # Rover Command Server
-
 Node.js server to track commands between the camera and the rover. I decided to go with this approach due to issues with stable communications between the rover and the XIAO camera. This server code sits on a Zimaboard NAS I have which allows for quick communication between any devices connected to the remote.
 
 ## Overview
-
 The Rover Command Server solves the problem of unreliable direct communication between my camera and rover it is always-on service that:
 
 1. Maintains a command queue
 2. Tracks camera connection status
 3. Provides endpoints for both the camera and rover
-4. Logs all activity for debugging
+4. Logs Rover and Camera Activity
 
-## Features
+## Core Features
+- **Command Queue**: Stores commands from rover(FORWARD, BACKWARD, TURN_LEFT, TURN_RIGHT, STOP)
+- **Heartbeat System**: Tracks camera status
+- **Automatic Queue Clearing**: Clears commands if not connected to camera
+- **Logging**: Records all server activity on logs
 
-- **Command Queue**: Stores movement commands (FORWARD, BACKWARD, TURN_LEFT, TURN_RIGHT, STOP)
-- **Heartbeat System**: Tracks camera connectivity status
-- **Automatic Queue Clearing**: Clears commands if camera disconnects
-- **Logging**: Records all server activity to dated log files
-- **RESTful API**: Simple HTTP endpoints for all functionality
-
-## API Endpoints
-
-### Camera Endpoints
-
-- **POST `/command`**: Add a command to the queue
+## Endpoints
+### Camera
+- **POST `/command`**: Adds a command to the queue
   ```json
   {
     "command": "FORWARD"
   }
   ```
 
-- **POST `/heartbeat`**: Update camera connection status
+- **POST `/heartbeat`**: Camera health ping
   ```json
   {}
   ```
 
-### Rover Endpoints
-
-- **GET `/next-command`**: Retrieve and remove the next command from the queue
+### Rover
+- **GET `/next-command`**: Gets next command for rover and removes from command queue
   ```json
   {
     "command": "FORWARD",
@@ -46,7 +39,7 @@ The Rover Command Server solves the problem of unreliable direct communication b
   }
   ```
 
-- **GET `/status`**: Check queue and camera status
+- **GET `/status`**: Checks server, queue, and camera status
   ```json
   {
     "queueLength": 1,
@@ -56,16 +49,13 @@ The Rover Command Server solves the problem of unreliable direct communication b
   ```
 
 ## Setup and Deployment
-
-Built for Zimaboard but this can be used on any computer that has docker installed
+Built for Zimaboard, but this can be used on any computer that has docker installed
 
 ### Prerequisites
-
 - Docker
-- Node.js (if running without Docker)
+- Node.js (if running locally, no Docker)
 
 ### Installation
-
 1. Clone this repository:
    ```bash
    git clone <repository-url>
@@ -87,7 +77,6 @@ Built for Zimaboard but this can be used on any computer that has docker install
    ```
 
 ### Running Without Docker
-
 1. Install dependencies:
    ```bash
    npm install
@@ -99,33 +88,26 @@ Built for Zimaboard but this can be used on any computer that has docker install
    ```
 
 ## Logs
-
-Logs are stored in the `logs` directory with filenames based on the current date (`server-YYYY-MM-DD.log`). When running with Docker, these logs are mapped to a volume on the host system.
+Logs are stored in the `logs` directory with filenames based on the current date (`server-YYYY-MM-DD.log`).
 
 ## Testing
-
-Use curl to test the server:
+Testing in the terminal:
 
 ```bash
-# Check status
+# Sever Status
 curl http://localhost:3000/status
 
-# Add a command
+# Add Rover command
 curl -X POST http://localhost:3000/command \
   -H "Content-Type: application/json" \
   -d '{"command":"FORWARD"}'
 
-# Send heartbeat
+# Send camera heartbeat
 curl -X POST http://localhost:3000/heartbeat
 
-# Get next command
+# Get next command for rover
 curl http://localhost:3000/next-command
 ```
 
 ## License
-
 [MIT LICENSE](../LICENSE)
-
-## Contributing
-
-[Add contributing guidelines if applicable]
