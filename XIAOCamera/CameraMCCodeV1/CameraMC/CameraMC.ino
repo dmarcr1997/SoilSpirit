@@ -4,12 +4,14 @@
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include "esp_camera.h"
-#include "apiServer.h"
+#include "cameraUtils.h"
 
 #define CAMERA_MODEL_XIAO_ESP32S3
 
 #include "camera_pins.h"
 #include "secrets.h"
+
+const int CAMERA_DELAY_MS = 2000;
 
 void setup() {
   Serial.begin(115200);
@@ -90,13 +92,53 @@ void setup() {
   }
   Serial.println("");
   Serial.println("[Main] WiFi connected");
-  setupApiServer();
+}
+
+
+bool uploadCommandToServer(const String& command) {
+  HTTPClient http;
+  http.begin(SERVER_URL);
+  
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(60000); // 60 second timeout
+  DynamicJsonDocument doc(16384);
+  doc["command"] = command;
+  String jsonPayload;
+  serializeJson(doc, jsonPayload);
+  
+  int httpResponseCode = http.POST(jsonPayload);
+  String result;
+  if (httpResponseCode > 0) {
+    result = http.getString();
+    Serial.println("[SERVER] HTTP Response Code: " + String(httpResponseCode));
+    
+    if (result.length() > 200) {
+      Serial.println("[SERVER] Response Body (truncated): " + result.substring(0, 200) + "...");
+    } else {
+      Serial.println("[SERVER] Response Body: " + result);
+    }
+    
+    http.end();
+    return true;
+  } else {
+    result = "HTTP request failed, response code: " + String(httpResponseCode);
+    Serial.println("[SERVER] Error Code: " + String(httpResponseCode));
+    Serial.println("[SERVER] Error Message: " + http.errorToString(httpResponseCode));
+    http.end();
+    return false;
+  }
 }
 
 void loop() {
-  // processSerialCommands();
-  handleAPIServer(); 
-  delay(100);
+  String command = captureAndAnalyzeImage();
+  bool outcome = uploadCommandToServer(command);
+  if (outcome) {
+    delay(CAMERA_DELAY_MS);
+  }
+  else {
+    uploadCommandToServer(command);
+    delay(CAMERA_DELAY_MS);
+  }
 }
 
 #endif //CAMERAMC

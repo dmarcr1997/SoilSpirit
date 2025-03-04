@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "secrets.h"
 
-String analyzeImageWithClaude(const String& base64Image, const String& lastCommand);
+String analyzeImageWithClaude(const String& base64Image);
 bool sendClaudeRequest(const String& payload, String& result);
 
 #endif //CLAUDE_API_H

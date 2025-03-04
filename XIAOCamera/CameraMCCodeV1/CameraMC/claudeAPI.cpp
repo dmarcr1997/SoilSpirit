@@ -1,9 +1,9 @@
 #include "claudeAPI.h"
 
-String Prompt = "Given this image, identify possible obstacles and provide your analysis in the following JSON format only: { 'obstacles': [ { 'position': 'LEFT|MIDDLE|RIGHT', 'distance': 'CLOSE|MEDIUM|FAR', 'description': 'brief description' } ], 'command': 'FORWARD|FULL_STOP|TURN_LEFT|TURN_RIGHT', 'reasoning': 'brief explanation for the command'} Do not include any text outside of this JSON structure. Base your command on the horizontal position, distance, tracked obstacles, and passed in last command. Keep on path and ignore background and grass/plants.";
+String Prompt = "Given this image, identify possible obstacles and provide your analysis in the following JSON format only: { 'obstacles': [ { 'position': 'LEFT|MIDDLE|RIGHT', 'distance': 'CLOSE|MEDIUM|FAR', 'description': 'brief description' } ], 'command': 'FORWARD|FULL_STOP|TURN_LEFT|TURN_RIGHT', 'reasoning': 'brief explanation for the command'} Do not include any text outside of this JSON structure. Base your command on the horizontal position, distance, and tracked obstacles. Keep on path and ignore background and grass/plants.";
 const String claudeAPIKey = CLAUDE_API_KEY;
 
-String analyzeImageWithClaude(const String& base64Image, const String& lastCommand) {
+String analyzeImageWithClaude(const String& base64Image) {
   Serial.println("Sending image for analysis to Claude LLM...");
   String imageMedia = "data:image/jpeg;base64," + base64Image;
   
@@ -21,13 +21,13 @@ String analyzeImageWithClaude(const String& base64Image, const String& lastComma
   JsonObject userMessage = messages.createNestedObject();
   userMessage["role"] = "user";
   
-  // Conten Array
+  // Content Array
   JsonArray content = userMessage.createNestedArray("content");
   
   // Add Prompt
   JsonObject textPart = content.createNestedObject();
   textPart["type"] = "text";
-  textPart["text"] = Prompt + "########## LAST COMMAND: " + lastCommand;
+  textPart["text"] = Prompt;
   
   // Add Base64 Image
   JsonObject imagePart = content.createNestedObject();
