@@ -33,11 +33,11 @@ const int B_MOTOR_RIGHT_IN4 = 32; // B-Right motor control pin 2
 
 // CONSTANTS
 const int CENTER_ANGLE = 90;
-const int RIGHT_ANGLE = 120;
-const int LEFT_ANGLE = 60; 
-const int TURN_DELAY = 500; 
-const int MOVEMENT_DELAY = 2000;
-const int HTTP_REQUEST_INTERVAL = 3000;
+const int RIGHT_ANGLE = 60;
+const int LEFT_ANGLE = 120; 
+const int TURN_DELAY = 1000; 
+const int MOVEMENT_DELAY = 1000;
+const int HTTP_REQUEST_INTERVAL = 2000;
 
 
 //Global Vars
@@ -167,16 +167,16 @@ void leftTurn() {
   Serial.println("[Rover] Turning left");
   frontLeftServo.write(LEFT_ANGLE);
   frontRightServo.write(LEFT_ANGLE);
-  backLeftServo.write(LEFT_ANGLE);
-  backRightServo.write(LEFT_ANGLE);
+  backLeftServo.write(RIGHT_ANGLE);
+  backRightServo.write(RIGHT_ANGLE);
 }
 
 void rightTurn() {
   Serial.println("[Rover] Turning right");
   frontLeftServo.write(RIGHT_ANGLE);
   frontRightServo.write(RIGHT_ANGLE);
-  backLeftServo.write(RIGHT_ANGLE);
-  backRightServo.write(RIGHT_ANGLE);
+  backLeftServo.write(LEFT_ANGLE);
+  backRightServo.write(LEFT_ANGLE);
 }
 
 void executeCommand(String command) {
@@ -207,7 +207,7 @@ void executeCommand(String command) {
       delay(TURN_DELAY);
     } else if (command =="FORWARD") {
       motorsForward();
-      delay(MOVEMENT_DELAY);
+      delay(MOVEMENT_DELAY * 2);
     } else if (command == "BACKWARD"){
       motorsBackwards();
       delay(MOVEMENT_DELAY);
@@ -225,7 +225,7 @@ void executeCommand(String command) {
 }
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
   Serial.println("[Rover] Initialization...");
   
   // SERVO TIMERS

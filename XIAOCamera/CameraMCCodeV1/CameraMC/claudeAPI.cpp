@@ -70,6 +70,8 @@ String analyzeImageWithClaude(const String& base64Image) {
       DeserializationError textError = deserializeJson(textDoc, responseContent);
       if (!textError && textDoc.containsKey("command")) {
         String commandResp = textDoc["command"].as<String>();
+        if(commandResp == "FULL_STOP")
+          commandResp += textDoc["reasoning"].as<String>();
         Serial.println("Sending Command: ");
         Serial.println(commandResp);
         return commandResp;
