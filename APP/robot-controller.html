@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SoilSpirit Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        /* THEMEV1 */
+    /* :root {
+        --bg: #0a0a12;
+        --bg-alt: #121223;
+        --accent: #f3184f;
+        --glow: #00ffd9;
+        --text: #e0e0ff;
+        --border: #624ad8;
+    } */
+    :root {
+        --bg: #080810;
+        --bg-alt: #1a1a2e;
+        --accent: #ff4f81;
+        --glow: #00ffee;
+        --text: #fefefe;
+        --border: #ff9f00;
+    }
+
+    body {
+        font-family: 'Share Tech Mono', monospace;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 0px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 15px;
+        max-width: 95vw;
+    }
+
+    .controller {
+        display: grid;
+        grid-template-areas:
+            "up down left right"
+            "toggle . . .";
+        gap: 10px;
+        justify-items: center;
+    }
+
+    .up { grid-area: up; }
+    .down { grid-area: down; }
+    .left { grid-area: left; }
+    .right { grid-area: right; }
+    .toggle {
+        grid-area: toggle;
+        width: 120px;
+        height: 30px;
+        font-size: 1.2rem;
+        background-color: var(--glow);
+        color: var(--bg);
+    }
+
+    h1 {
+        /* font-family: 'Orbitron', sans-serif; */
+        /* text-transform: uppercase; */
+        /* text-align: center; */
+        font-size: 2.5rem;
+        color: var(--glow);
+        text-shadow: 0 0 10px var(--glow);
+    }
+
+    .settings {
+        /* background: var(--bg-alt); */
+        /* padding: 15px;
+        border-left: 2px solid var(--accent);
+        border-radius: 5px; */
+        width: 80%;
+    }
+
+    .setting-row {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        background-color: var(--bg-alt);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        text-shadow: 0 0 5px var(--accent);
+    }
+
+    input[type="text"]:focus {
+        border-color: var(--glow);
+        box-shadow: 0 0 10px var(--glow);
+    }
+
+    label {
+        color: var(--glow);
+        text-transform: uppercase;
+        font-size: 14px;
+    }
+
+    .error-message {
+        color: #ff2a6d;
+        font-size: 12px;
+    }
+
+    .button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 80px;
+        height: 80px;
+        font-size: 1rem;
+        background-color: var(--accent);
+        color: var(--text);
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+        box-shadow: 0 0 12px var(--accent);
+    }
+    .button:hover {
+        background-color: var(--glow);
+        color: var(--bg);
+        transform: scale(1.05);
+        box-shadow: 0 0 18px var(--glow);
+    }
+
+    .button:active {
+        background-color: var(--border);
+        transform: scale(0.95);
+        box-shadow: 0 0 10px var(--border);
+    }
+
+    .status-panel, .response-log {
+        width: 100%;
+    }
+
+    .status-row {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .error-message {
+        color: var(--accent);
+    }
+
+    #responseLog {
+        background-color: var(--bg-alt);
+        padding: 10px;
+        height: 100px;
+        overflow-y: auto;
+        border-radius: 5px;
+        border: 1px solid var(--border);
+        box-shadow: 0 0 10px var(--border);
+    }
+    #responseLog {
+        scrollbar-width: none;
+        -ms-overflow-style: none; 
+    }
+
+    #responseLog::-webkit-scrollbar {
+        display: none;
+    }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SoilSpirit_v1</h1>
+        
+        <div class="settings">
+            <div class="setting-row">
+                <label for="serverAddress">SERVER_ADDRESS</label>
+                <input type="text" id="serverAddress" value="http://localhost:3000">
+                <div id="serverAddressError" class="error-message"></div>
+            </div>
+        </div>
+        
+        <div class="controller">
+            <div class="button up" data-command="FORWARD">▲</div>
+            <div class="button left" data-command="TURN_LEFT">◀</div>
+            <div id="toggleButton" class="button toggle" data-command="FULL_STOP">ACTIVATE</div>
+            <div class="button right" data-command="TURN_RIGHT">▶</div>
+            <div class="button down" data-command="BACKWARD">▼</div>
+        </div>
+        
+        <div class="status-panel">
+            <div class="status-row">
+                <span class="status-label">UPLINK_STATUS</span>
+                <span id="serverStatus">
+                    <span class="connection-indicator disconnected"></span>
+                    CONNECTING...
+                </span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">COMMAND_MODULE</span>
+                <span id="cameraStatus">
+                    <span class="connection-indicator disconnected"></span>
+                    OFFLINE
+                </span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">COMMAND_QUEUE</span>
+                <span id="queueLength">0</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">LAST_INSTRUCTION</span>
+                <span id="lastCommand">NONE</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">ROVER_STATUS</span>
+                <span id="roverState">STANDBY</span>
+            </div>
+        </div>
+        
+        <div class="response-log" id="responseLog">
+            <div>[SYSTEM] Rover control interface init...</div>
+            <div>[SYSTEM] Connecting to command server...</div>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const Controller = {
+            elements: {
+                buttons: document.querySelectorAll('.button'),
+                toggleButton: document.getElementById('toggleButton'),
+                serverAddressInput: document.getElementById('serverAddress'),
+                serverAddressError: document.getElementById('serverAddressError'),
+                serverStatus: document.getElementById('serverStatus'),
+                cameraStatus: document.getElementById('cameraStatus'),
+                queueLength: document.getElementById('queueLength'),
+                lastCommand: document.getElementById('lastCommand'),
+                roverState: document.getElementById('roverState'),
+                responseLog: document.getElementById('responseLog')
+            },
+
+            state: {
+                isActive: false,
+                timers: {},
+                heartbeatTimer: null,
+                statusTimer: null,
+                activeButtonCount: 0,
+                serverConnected: false,
+                cameraConnected: false
+            },
+            
+            /**
+             * Initialize the controller
+             */
+            init: function() {
+                this.setupEventListeners();
+                this.startTimers();
+                this.addLogEntry('[SYSTEM] Awaiting activation...');
+            },
+            
+            /**
+             * Set up all event listeners
+             */
+            setupEventListeners: function() {
+                
+                const directionalButtons = Array.from(this.elements.buttons).filter(button => 
+                    button !== this.elements.toggleButton
+                ); //ignoring toggle button
+                
+                directionalButtons.forEach(button => {
+                    console.log(`Adding event listeners for ${button.dataset.command} button`);
+                    
+                    // Mouse events
+                    button.addEventListener('mousedown', this.handleButtonPress.bind(this));
+                    button.addEventListener('mouseup', this.handleButtonRelease.bind(this));
+                    button.addEventListener('mouseleave', this.handleButtonRelease.bind(this));
+                    
+                    // Touch events
+                    button.addEventListener('touchstart', this.handleTouchStart.bind(this));
+                    button.addEventListener('touchend', this.handleTouchEnd.bind(this));
+                    button.addEventListener('touchcancel', this.handleTouchEnd.bind(this));
+
+                    //allows for phone and computer control
+                });
+                
+                // Toggle button event
+                console.log("Adding toggle button event listener");
+                this.elements.toggleButton.addEventListener('click', this.handleToggleClick.bind(this));
+                
+                // Server address change event
+                this.elements.serverAddressInput.addEventListener('change', this.handleServerAddressChange.bind(this));
+                
+                // Page unload - cleanup
+                window.addEventListener('beforeunload', this.cleanup.bind(this));
+            },
+            
+            /**
+             * Handle button press events
+             */
+            handleButtonPress: function(event) {
+                const button = event.currentTarget;
+                const command = button.dataset.command;
+                
+                if (!this.state.isActive) {
+                    return;
+                }
+                
+                // Update active button count
+                this.state.activeButtonCount++;
+                this.updateRoverState();
+                
+                this.sendCommand(command);
+                
+                // Start sending command repeatedly
+                this.state.timers[command] = setInterval(() => {
+                    this.sendCommand(command);
+                }, 1000);
+            },
+            
+            /**
+             * Handle button release events
+             */
+            handleButtonRelease: function(event) {
+                const button = event.currentTarget;
+                const command = button.dataset.command;
+                
+                if (this.state.timers[command]) {
+                    clearInterval(this.state.timers[command]);
+                    this.state.timers[command] = null;
+                    
+                    // Update active button count
+                    this.state.activeButtonCount--;
+                    this.updateRoverState();
+                }
+            },
+            
+            /**
+             * Handle touch start events
+             */
+            handleTouchStart: function(event) {
+                event.preventDefault();
+                this.handleButtonPress(event);
+            },
+            
+            /**
+             * Handle touch end events
+             */
+            handleTouchEnd: function(event) {
+                event.preventDefault();
+                this.handleButtonRelease(event);
+            },
+            
+            /**
+             * Handle toggle button click
+             */
+            handleToggleClick: function() {
+                this.state.isActive = !this.state.isActive;
+                
+                if (this.state.isActive) {
+                    this.elements.toggleButton.textContent = 'ACTIVE';
+                    this.elements.toggleButton.classList.add('active');
+                    this.addLogEntry('[SYSTEM] Command Interface Activated...');
+                    this.elements.roverState.textContent = 'READY';
+                } else {
+                    this.elements.toggleButton.textContent = 'INACTIVE';
+                    this.elements.toggleButton.classList.remove('active');
+                    this.sendCommand('FULL_STOP');
+                    this.addLogEntry('[ALERT] Emergency override activated. All systems halted.');
+                    this.elements.roverState.textContent = 'STANDBY';
+                    
+                    // Clear any active command timers
+                    Object.keys(this.state.timers).forEach(key => {
+                        if (this.state.timers[key]) {
+                            clearInterval(this.state.timers[key]);
+                            this.state.timers[key] = null;
+                        }
+                    });
+                    
+                    // Reset active button count
+                    this.state.activeButtonCount = 0;
+                }
+            },
+            
+            /**
+             * Handle changes to the server address
+             */
+            handleServerAddressChange: function() {
+                const serverUrl = this.getServerUrl();
+                if (serverUrl) {
+                    this.addLogEntry(`[SYS] Command Server URL Changed to: ${serverUrl}`);
+                    
+                    // Reset timers with new address
+                    if (this.state.heartbeatTimer) clearInterval(this.state.heartbeatTimer);
+                    if (this.state.statusTimer) clearInterval(this.state.statusTimer);
+                    
+                    this.startTimers();
+                }
+            },
+            
+            updateRoverState: function() {
+                if (!this.state.isActive) {
+                    this.elements.roverState.textContent = 'STANDBY';
+                    return;
+                }
+                
+                if (this.state.activeButtonCount > 0) {
+                    this.elements.roverState.textContent = 'ACTIVE_TRANSIT';
+                } else {
+                    this.elements.roverState.textContent = 'READY';
+                }
+            },
+            
+            /**
+             * Start background timers for heartbeat and status checks
+             */
+            startTimers: function() {
+                this.state.heartbeatTimer = setInterval(() => this.sendHeartbeat(), 30000);
+                
+                this.state.statusTimer = setInterval(() => this.checkStatus(), 3000);
+                
+                // Initial checks
+                this.sendHeartbeat();
+                this.checkStatus();
+            },
+            
+            cleanup: function() {
+                Object.values(this.state.timers).forEach(timer => {
+                    if (timer) clearInterval(timer);
+                });
+                
+                if (this.state.heartbeatTimer) clearInterval(this.state.heartbeatTimer);
+                if (this.state.statusTimer) clearInterval(this.state.statusTimer);
+            },
+            
+            getServerUrl: function() {
+                const address = this.elements.serverAddressInput.value.trim();
+                if (!this.isValidUrl(address)) {
+                    this.elements.serverAddressError.textContent = 'Enter a valid URL (e.g., http://localhost:3000)';
+                    return null;
+                }
+                this.elements.serverAddressError.textContent = '';
+                
+                return address.endsWith('/') ? address.slice(0, -1) : address;
+            },
+            
+            isValidUrl: function(url) {
+                try {
+                    new URL(url);
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            },
+            
+            sendCommand: async function(command) {
+                if (command !== 'FULL_STOP' && !this.state.isActive) {
+                    console.log("Command not sent - controller inactive");
+                    return; // Only allow FULL_STOP when inactive
+                }
+                
+                const serverUrl = this.getServerUrl();
+                if (!serverUrl) return;
+                
+                try {
+                    this.addLogEntry(`[CMD] Sending command to Rover: ${command}`);
+                    
+                    const response = await fetch(`${serverUrl}/command`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ command }),
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.addLogEntry(`[SUCCESS] Command success: ${command}. Queue: ${data.queueLength}`);
+                    this.elements.queueLength.textContent = data.queueLength;
+                    this.elements.lastCommand.textContent = command;
+                    
+                } catch (error) {
+                    this.addLogEntry(`[ERROR] Command failure: ${error.message}`, true);
+                    this.updateServerStatus(false);
+                }
+            },
+            
+            sendHeartbeat: async function() {
+                const serverUrl = this.getServerUrl();
+                if (!serverUrl) return;
+                
+                try {
+                    const response = await fetch(`${serverUrl}/heartbeat`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({}),
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+                    
+                    // Success
+                    this.updateServerStatus(true);
+                    
+                } catch (error) {
+                    this.addLogEntry(`[WARNING] Heartbeat signal lost: ${error.message}`, true);
+                    this.updateServerStatus(false);
+                }
+            },
+            
+            checkStatus: async function() {
+                const serverUrl = this.getServerUrl();
+                if (!serverUrl) {
+                    this.updateServerStatus(false);
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`${serverUrl}/status`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    this.updateServerStatus(true);
+                    
+                    // Update camera status
+                    const isCamera = data.message && data.message.includes('CAMERA CONNECTED: true');
+                    this.updateCameraStatus(isCamera);
+                    
+                } catch (error) {
+                    this.updateServerStatus(false);
+                    this.updateCameraStatus(false);
+                }
+            },
+            
+            updateServerStatus: function(isConnected) {
+                this.state.serverConnected = isConnected;
+                
+                const indicator = this.elements.serverStatus.querySelector('.connection-indicator');
+                if (isConnected) {
+                    indicator.className = 'connection-indicator connected';
+                    this.elements.serverStatus.innerHTML = this.elements.serverStatus.innerHTML.replace(/CONNECTING\.\.\.|OFFLINE/, 'ONLINE');
+                } else {
+                    indicator.className = 'connection-indicator disconnected';
+                    this.elements.serverStatus.innerHTML = this.elements.serverStatus.innerHTML.replace(/CONNECTING\.\.\.|ONLINE/, 'OFFLINE');
+                }
+            },
+            
+            updateCameraStatus: function(isConnected) {
+                this.state.cameraConnected = isConnected;
+                
+                const indicator = this.elements.cameraStatus.querySelector('.connection-indicator');
+                if (isConnected) {
+                    indicator.className = 'connection-indicator connected';
+                    this.elements.cameraStatus.innerHTML = this.elements.cameraStatus.innerHTML.replace(/OFFLINE|UNKNOWN/, 'ONLINE');
+                } else {
+                    indicator.className = 'connection-indicator disconnected';
+                    this.elements.cameraStatus.innerHTML = this.elements.cameraStatus.innerHTML.replace(/ONLINE|UNKNOWN/, 'OFFLINE');
+                }
+            },
+            
+            addLogEntry: function(message, isError = false) {
+                const logEntry = document.createElement('div');
+                logEntry.textContent = '';
+                
+                if (isError) {
+                    logEntry.style.color = 'var(--cyber-error)';
+                } else if (message.includes('SUCCESS') || message.includes('READY')) {
+                    logEntry.style.color = 'var(--cyber-success)';
+                } else if (message.includes('WARNING') || message.includes('ALERT')) {
+                    logEntry.style.color = 'var(--cyber-warning)';
+                }
+                
+                this.elements.responseLog.appendChild(logEntry);
+                this.elements.responseLog.scrollTop = this.elements.responseLog.scrollHeight;
+
+                if (message.includes('ACTIVE_TRANSIT') || message.includes('Queue:')) {
+                    logEntry.textContent = message;
+                } else {
+                    // typewriter effect
+                    let i = 0;
+                    const speed = 15; // milliseconds per character
+                    
+                    const typeWriter = () => {
+                        if (i < message.length) {
+                            logEntry.textContent += message.charAt(i);
+                            i++;
+                            setTimeout(typeWriter, speed);
+                        }
+                    };
+                    
+                    typeWriter();
+                }
+                
+                // Limit log entries
+                while (this.elements.responseLog.children.length > 50) {
+                    this.elements.responseLog.removeChild(this.elements.responseLog.firstChild);
+                }
+            }
+        };
+        
+        // Initialize the controller
+        Controller.init();
+    });
+    </script>
+</body>
+</html>
