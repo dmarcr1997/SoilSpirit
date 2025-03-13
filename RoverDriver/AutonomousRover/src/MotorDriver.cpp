@@ -1,5 +1,48 @@
 #include "MotorDriver.h"
 
+Servo frontLeftServo;
+Servo frontRightServo;
+Servo backLeftServo;
+Servo backRightServo;
+
+void initDriveSystem() {
+  // SERVO TIMERS
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
+  
+  // SERVO FREQUENCIES
+  frontLeftServo.setPeriodHertz(50);
+  frontRightServo.setPeriodHertz(50);
+  backLeftServo.setPeriodHertz(50);
+  backRightServo.setPeriodHertz(50);
+  
+  // SERVO ATTACHMENTS
+  frontLeftServo.attach(SERVO_FRONT_LEFT_PIN, 500, 2500);
+  frontRightServo.attach(SERVO_FRONT_RIGHT_PIN, 500, 2500);
+  backLeftServo.attach(SERVO_BACK_LEFT_PIN, 500, 2500);
+  backRightServo.attach(SERVO_BACK_RIGHT_PIN, 500, 2500);
+  
+  Serial.println("[Rover] Servos initialized");
+  
+  // MOTOR PINMODES
+  pinMode(F_MOTOR_LEFT_IN1, OUTPUT);
+  pinMode(F_MOTOR_LEFT_IN2, OUTPUT);
+  pinMode(F_MOTOR_RIGHT_IN3, OUTPUT);
+  pinMode(F_MOTOR_RIGHT_IN4, OUTPUT);
+
+  pinMode(M_MOTOR_LEFT_IN1, OUTPUT);
+  pinMode(M_MOTOR_LEFT_IN2, OUTPUT);
+  pinMode(M_MOTOR_RIGHT_IN3, OUTPUT);
+  pinMode(M_MOTOR_RIGHT_IN4, OUTPUT);
+
+  pinMode(B_MOTOR_LEFT_IN1, OUTPUT);
+  pinMode(B_MOTOR_LEFT_IN2, OUTPUT);
+  pinMode(B_MOTOR_RIGHT_IN3, OUTPUT);
+  pinMode(B_MOTOR_RIGHT_IN4, OUTPUT);
+}
+
 void stopMotors() {
   Serial.println("[Rover] Stopping...");
   digitalWrite(F_MOTOR_LEFT_IN1, LOW);

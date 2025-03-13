@@ -5,10 +5,10 @@
 
 
 //SERVO SETUP
-Servo frontLeftServo;
-Servo frontRightServo;
-Servo backLeftServo;
-Servo backRightServo;
+extern Servo frontLeftServo;
+extern Servo frontRightServo;
+extern Servo backLeftServo;
+extern Servo backRightServo;
 
 const int SERVO_FRONT_LEFT_PIN = 16;
 const int SERVO_FRONT_RIGHT_PIN = 17;
@@ -37,6 +37,7 @@ const int RIGHT_ANGLE = 60;
 const int LEFT_ANGLE = 120; 
 const int MOVEMENT_DELAY = 1000; 
 
+void initDriveSystem();
 void stopMotors();
 void motorsForward();
 void motorsBackwards();

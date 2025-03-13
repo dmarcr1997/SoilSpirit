@@ -1,4 +1,3 @@
-#include <Arduino>
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -6,10 +5,13 @@
 #include "secrets.h"
 
 // ULTRA SONIC SENSORS
-const int TRIGGER_PIN = 15;
-const int ECHO_L_PIN = 34;
+// const int TRIGGER_PIN_L = 16;
+const int TRIGGER_PIN_C = 15;
+// const int TRIGGER_PIN_R = 17;
+
+// const int ECHO_L_PIN = 34;
 const int ECHO_C_PIN = 35;
-const int ECHO_R_PIN = 21;
+// const int ECHO_R_PIN = 21;
 const int LEFT_THRESH = 0.25;
 const int CENTER_THRESH = 0.5;
 const int RIGHT_THRESH = 0.25;
@@ -18,8 +20,6 @@ const int STOP_DISTANCE = 20;
 const int MAX_DISTANCE = 400;
 
 // CONSTANTS
-const int TURN_DELAY = 1000; 
-const int MOVEMENT_DELAY = 1000;
 const int HTTP_REQUEST_INTERVAL = 1000;
 const int SENSOR_CHECK_INTERVAL = 100;
 
@@ -31,42 +31,43 @@ long durationLeft, durationCenter, durationRight;
 float distanceLeft, distanceCenter, distanceRight;
 float fusedDistance;
 unsigned long lastSensorCheckTime = 0;
+bool roverActive = false;
 
 void setupUltrasonicSensors() {
-  pinMode(TRIGGER_PIN, OUTPUT);
-  pinMode(ECHO_L_PIN, INPUT);
+  // pinMode(TRIGGER_PIN_L, OUTPUT);
+  pinMode(TRIGGER_PIN_C, OUTPUT);
+  // pinMode(TRIGGER_PIN_R, OUTPUT);
+  
+  // pinMode(ECHO_L_PIN, INPUT);
   pinMode(ECHO_C_PIN, INPUT);
-  pinMode(ECHO_R_PIN, INPUT);
-  digitalWrite(TRIGGER_PIN, LOW);
+  // pinMode(ECHO_R_PIN, INPUT);
+  // digitalWrite(TRIGGER_PIN_L, LOW);
+  digitalWrite(TRIGGER_PIN_C, LOW);
+  // digitalWrite(TRIGGER_PIN_R, LOW);
+  
   Serial.println("[Rover] US Sensors Init...");
 }
 
-float getDistance(int echoPin) {
-  digitalWrite(TRIGGER_PIN, LOW);
-  delay(2);
-  digitalWrite(TRIGGER_PIN, HIGH);
-  delay(10);
-  digitalWrite(TRIGGER_PIN, LOW);
+float triggerSensor(int triggerPin, int echoPin) {
+  digitalWrite(triggerPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(triggerPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(triggerPin, LOW);
 
-  long duration = pulseIn(echoPin, HIGH, 23530); // pin, value, time; time = MAX_DIST / 340 * 2
-
+  long duration = pulseIn(echoPin, HIGH, 23530);
   float distance = duration * 0.034 / 2;
-
-  if (distance == 0 || distance > MAX_DISTANCE) {
-    distance = MAX_DISTANCE;
-  }
+  if (distance == 0 || distance > MAX_DISTANCE) distance = MAX_DISTANCE;
   return distance;
 }
 
-void readALLUSSensors() {
-  distanceLeft = getDistance(ECHO_L_PIN);
-  delay(10);
 
-  distanceCenter = getDistance(ECHO_C_PIN);
-  delay(10);
+void readAllUSSensors() {
+  distanceCenter = triggerSensor(TRIGGER_PIN_C, ECHO_C_PIN);
+  // distanceLeft = triggerSensor(TRIGGER_PIN_L, ECHO_L_PIN);
+  // distanceRight = triggerSensor(TRIGGER_PIN_R, ECHO_R_PIN);
   
-  distanceRight = getDistance(ECHO_R_PIN);
-  fusedDistance = (LEFT_THRESH * distanceLeft) + (CENTER_THRESH * distanceCenter) * (RIGHT_THRESH * distanceRight);
+  // fusedDistance = (LEFT_THRESH * distanceLeft) + (CENTER_THRESH * distanceCenter) * (RIGHT_THRESH * distanceRight);
 
   Serial.print("[US Sensors] L:");
   Serial.print(distanceLeft);
@@ -80,36 +81,36 @@ void readALLUSSensors() {
 }
 
 String ultraSonicSensorOD() {
-  readAllSensors();
+  readAllUSSensors();
   
   // Decision logic based on sensor readings
-  if (fusedDistance < CRITICAL_DISTANCE) {
+  if (distanceCenter < STOP_DISTANCE) {
     // Critical distance - stop immediately
     return "FULL_STOP";
   } 
-  else if (distanceCenter < SAFE_DISTANCE) {
-    // Center obstacle detected
+  // else if (distanceCenter < SAFE_DISTANCE) {
+  //   // Center obstacle detected
     
-    // Determine which direction is clearer
-    if (distanceLeft > distanceRight && distanceLeft > SAFE_DISTANCE) {
-      return "TURN_LEFT";
-    } 
-    else if (distanceRight > distanceLeft && distanceRight > SAFE_DISTANCE) {
-      return "TURN_RIGHT";
-    }
-    else {
-      // Both sides are blocked or unsafe
-      return "BACKWARD";
-    }
-  }
-  else if (distanceLeft < SAFE_DISTANCE) {
-    // Left obstacle detected, turn right
-    return "TURN_RIGHT";
-  }
-  else if (distanceRight < SAFE_DISTANCE) {
-    // Right obstacle detected, turn left
-    return "TURN_LEFT";
-  }
+  //   // Determine which direction is clearer
+  //   if (distanceLeft > distanceRight && distanceLeft > SAFE_DISTANCE) {
+  //     return "TURN_LEFT";
+  //   } 
+  //   else if (distanceRight > distanceLeft && distanceRight > SAFE_DISTANCE) {
+  //     return "TURN_RIGHT";
+  //   }
+  //   else {
+  //     // Both sides are blocked or unsafe
+  //     return "BACKWARD";
+  //   }
+  // }
+  // else if (distanceLeft < SAFE_DISTANCE) {
+  //   // Left obstacle detected, turn right
+  //   return "TURN_RIGHT";
+  // }
+  // else if (distanceRight < SAFE_DISTANCE) {
+  //   // Right obstacle detected, turn left
+  //   return "TURN_LEFT";
+  // }
   else {
     // All clear, continue with current command
     return "FORWARD";
@@ -205,44 +206,10 @@ void executeCommand(String command) {
 
 
 void setup() {
-  // Serial.begin(9600);
+  Serial.begin(9600);
   Serial.println("[Rover] Initialization...");
   
-  // SERVO TIMERS
-  ESP32PWM::allocateTimer(0);
-  ESP32PWM::allocateTimer(1);
-  ESP32PWM::allocateTimer(2);
-  ESP32PWM::allocateTimer(3);
-  
-  // SERVO FREQUENCIES
-  frontLeftServo.setPeriodHertz(50);
-  frontRightServo.setPeriodHertz(50);
-  backLeftServo.setPeriodHertz(50);
-  backRightServo.setPeriodHertz(50);
-  
-  // SERVO ATTACHMENTS
-  frontLeftServo.attach(SERVO_FRONT_LEFT_PIN, 500, 2500);
-  frontRightServo.attach(SERVO_FRONT_RIGHT_PIN, 500, 2500);
-  backLeftServo.attach(SERVO_BACK_LEFT_PIN, 500, 2500);
-  backRightServo.attach(SERVO_BACK_RIGHT_PIN, 500, 2500);
-  
-  Serial.println("[Rover] Servos initialized");
-  
-  // MOTOR PINMODES
-  pinMode(F_MOTOR_LEFT_IN1, OUTPUT);
-  pinMode(F_MOTOR_LEFT_IN2, OUTPUT);
-  pinMode(F_MOTOR_RIGHT_IN3, OUTPUT);
-  pinMode(F_MOTOR_RIGHT_IN4, OUTPUT);
-
-  pinMode(M_MOTOR_LEFT_IN1, OUTPUT);
-  pinMode(M_MOTOR_LEFT_IN2, OUTPUT);
-  pinMode(M_MOTOR_RIGHT_IN3, OUTPUT);
-  pinMode(M_MOTOR_RIGHT_IN4, OUTPUT);
-
-  pinMode(B_MOTOR_LEFT_IN1, OUTPUT);
-  pinMode(B_MOTOR_LEFT_IN2, OUTPUT);
-  pinMode(B_MOTOR_RIGHT_IN3, OUTPUT);
-  pinMode(B_MOTOR_RIGHT_IN4, OUTPUT);
+  initDriveSystem();
   setupUltrasonicSensors();
 
   Serial.println("[Rover] Setup Complete");
@@ -253,8 +220,8 @@ void loop() {
   if (currentTime - lastSensorCheckTime >= SENSOR_CHECK_INTERVAL) {
     lastSensorCheckTime = currentTime;
     String ultraSonicSensorArrayCommand = ultraSonicSensorOD();
-    if (isMoving) {
-      executeCommand(ultraSonicSensorArrayCommand)
+    if (roverActive) {
+      executeCommand(ultraSonicSensorArrayCommand);
     }
   }
   if (WiFi.status() != WL_CONNECTED) {
@@ -262,11 +229,16 @@ void loop() {
     connectToWiFi();
   }
 
-  if (lastRequestTime > HTTP_REQUEST_INTERVAL) {
+  if (currentTime - lastRequestTime > HTTP_REQUEST_INTERVAL) {
     lastRequestTime = currentTime;
     String newCommand = retrieveCommandFromServer(); //USER COMMAND and START/STOP
-    if(newCommand != "OD") {
+    if(newCommand == "OD") {
+      roverActive = true;
       Serial.println("[Rover] Received command: " + newCommand);
+      executeCommand(newCommand);
+    } else if(newCommand == "CONTROL_STOP") {
+      roverActive = false;
+    } else {
       executeCommand(newCommand);
     }
   } 
