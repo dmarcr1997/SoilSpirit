@@ -370,7 +370,7 @@
                 if (this.state.isActive) {
                     this.elements.toggleButton.textContent = 'ACTIVE';
                     this.elements.toggleButton.classList.add('active');
-                    this.sendCommand('OD');
+                    this.sendCommand('START');
                     this.addLogEntry('[SYSTEM] Command Interface Activated...');
                     this.elements.roverState.textContent = 'READY';
                 } else {
@@ -464,7 +464,7 @@
             },
             
             sendCommand: async function(command) {
-                if (command !== 'FULL_STOP' && !this.state.isActive) {
+                if (command !== 'CONTROL_STOP' && command !== 'FULL_STOP' && !this.state.isActive) {
                     console.log("Command not sent - controller inactive");
                     return; // Only allow FULL_STOP when inactive
                 }

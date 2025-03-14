@@ -61,7 +61,7 @@ app.post('/command', (req, res) => {
 			message: 'Command is required'
 		});
 	}
-	if (command.toUpperCase === "START") {
+	if (command.toUpperCase() === "START") {
                 active = true;
                 res.status(200).json({
                         status: 'success',
@@ -72,7 +72,7 @@ app.post('/command', (req, res) => {
                         command: "OD",
                         timestamp: Date.now()
                 });
-        } else if (command.toUpperCase === "CONTROL_STOP") {
+        } else if (command.toUpperCase() === "CONTROL_STOP") {
                 active = false;
                 res.status(200).json({
                         status: 'success',

@@ -20,7 +20,7 @@ const int STOP_DISTANCE = 20;
 const int MAX_DISTANCE = 400;
 
 // CONSTANTS
-const int HTTP_REQUEST_INTERVAL = 1000;
+const int HTTP_REQUEST_INTERVAL = 100;
 const int SENSOR_CHECK_INTERVAL = 100;
 
 // Global Vars
@@ -235,9 +235,9 @@ void loop() {
     if(newCommand == "OD") {
       roverActive = true;
       Serial.println("[Rover] Received command: " + newCommand);
-      executeCommand(newCommand);
     } else if(newCommand == "CONTROL_STOP") {
       roverActive = false;
+      executeCommand("FULL_STOP");
     } else {
       executeCommand(newCommand);
     }
