@@ -84,19 +84,22 @@ app.post('/command', (req, res) => {
                         timestamp: Date.now()
                 });
         } else {
-                commandQueue.push({
-                        command: command.toUpperCase(),
-                        timestamp: Date.now()
-                });
+			if(commandQueue.length >= 3) {
+				commandQueue = [];
+			}
+			commandQueue.push({
+					command: command.toUpperCase(),
+					timestamp: Date.now()
+			});
 
-                lastCameraHB = Date.now();
-                
-                logger(`Command added: ${command}`);
-                res.status(200).json({
-                        status: 'success',
-                        message: 'Command added to queue',
-                        queueLength: commandQueue.length
-                });
+			lastCameraHB = Date.now();
+			
+			logger(`Command added: ${command}`);
+			res.status(200).json({
+					status: 'success',
+					message: 'Command added to queue',
+					queueLength: commandQueue.length
+			});
         }
 });
 

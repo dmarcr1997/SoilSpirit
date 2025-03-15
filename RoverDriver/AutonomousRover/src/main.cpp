@@ -5,23 +5,20 @@
 #include "secrets.h"
 
 // ULTRA SONIC SENSORS
-// const int TRIGGER_PIN_L = 16;
-const int TRIGGER_PIN_C = 15;
-// const int TRIGGER_PIN_R = 17;
-
-// const int ECHO_L_PIN = 34;
+const int TRIGGER_PIN_C = 18;
 const int ECHO_C_PIN = 35;
-// const int ECHO_R_PIN = 21;
+const int CRIT_PIN = 21;
+
 const int LEFT_THRESH = 0.25;
 const int CENTER_THRESH = 0.5;
 const int RIGHT_THRESH = 0.25;
-const int SAFE_DISTANCE = 50;
-const int STOP_DISTANCE = 20;
+const int SAFE_DISTANCE = 80;
+const int STOP_DISTANCE = 40;
 const int MAX_DISTANCE = 400;
 
 // CONSTANTS
-const int HTTP_REQUEST_INTERVAL = 100;
-const int SENSOR_CHECK_INTERVAL = 100;
+const int HTTP_REQUEST_INTERVAL = 1000;
+const int SENSOR_CHECK_INTERVAL = 500;
 
 // Global Vars
 String currentCommand = "FULL_STOP";
@@ -34,17 +31,11 @@ unsigned long lastSensorCheckTime = 0;
 bool roverActive = false;
 
 void setupUltrasonicSensors() {
-  // pinMode(TRIGGER_PIN_L, OUTPUT);
+  pinMode(CRIT_PIN, OUTPUT);
   pinMode(TRIGGER_PIN_C, OUTPUT);
-  // pinMode(TRIGGER_PIN_R, OUTPUT);
-  
-  // pinMode(ECHO_L_PIN, INPUT);
   pinMode(ECHO_C_PIN, INPUT);
-  // pinMode(ECHO_R_PIN, INPUT);
-  // digitalWrite(TRIGGER_PIN_L, LOW);
   digitalWrite(TRIGGER_PIN_C, LOW);
-  // digitalWrite(TRIGGER_PIN_R, LOW);
-  
+  digitalWrite(CRIT_PIN, LOW);
   Serial.println("[Rover] US Sensors Init...");
 }
 
@@ -61,58 +52,19 @@ float triggerSensor(int triggerPin, int echoPin) {
   return distance;
 }
 
-
-void readAllUSSensors() {
+String ultraSonicSensorOD() {
   distanceCenter = triggerSensor(TRIGGER_PIN_C, ECHO_C_PIN);
-  // distanceLeft = triggerSensor(TRIGGER_PIN_L, ECHO_L_PIN);
-  // distanceRight = triggerSensor(TRIGGER_PIN_R, ECHO_R_PIN);
-  
-  // fusedDistance = (LEFT_THRESH * distanceLeft) + (CENTER_THRESH * distanceCenter) * (RIGHT_THRESH * distanceRight);
-
-  Serial.print("[US Sensors] L:");
-  Serial.print(distanceLeft);
   Serial.print("cm  C:");
   Serial.print(distanceCenter);
-  Serial.print("cm  R:");
-  Serial.print(distanceRight);
-  Serial.print("cm  Fused:");
-  Serial.print(fusedDistance);
-  Serial.println("cm");
-}
-
-String ultraSonicSensorOD() {
-  readAllUSSensors();
-  
-  // Decision logic based on sensor readings
-  if (distanceCenter < STOP_DISTANCE) {
+  if (distanceCenter <= STOP_DISTANCE) {
     // Critical distance - stop immediately
+    digitalWrite(CRIT_PIN, HIGH);
+    Serial.print("STOPP");
+    Serial.print(distanceCenter);
     return "FULL_STOP";
-  } 
-  // else if (distanceCenter < SAFE_DISTANCE) {
-  //   // Center obstacle detected
-    
-  //   // Determine which direction is clearer
-  //   if (distanceLeft > distanceRight && distanceLeft > SAFE_DISTANCE) {
-  //     return "TURN_LEFT";
-  //   } 
-  //   else if (distanceRight > distanceLeft && distanceRight > SAFE_DISTANCE) {
-  //     return "TURN_RIGHT";
-  //   }
-  //   else {
-  //     // Both sides are blocked or unsafe
-  //     return "BACKWARD";
-  //   }
-  // }
-  // else if (distanceLeft < SAFE_DISTANCE) {
-  //   // Left obstacle detected, turn right
-  //   return "TURN_RIGHT";
-  // }
-  // else if (distanceRight < SAFE_DISTANCE) {
-  //   // Right obstacle detected, turn left
-  //   return "TURN_LEFT";
-  // }
-  else {
+  } else {
     // All clear, continue with current command
+    digitalWrite(CRIT_PIN, LOW);
     return "FORWARD";
   }
 }
@@ -180,18 +132,18 @@ void executeCommand(String command) {
   isMoving = true;
   if (command == "TURN_LEFT"){ 
       leftTurn(); 
-      motorsForward();
+      motorsLeft();
+      centerWheels();
       currentCommand = "TURN_LEFT";
   } else if (command == "TURN_RIGHT"){
       rightTurn();
-      motorsForward();
+      motorsRight();
+      centerWheels();
       currentCommand = "TURN_RIGHT";
   } else if (command =="FORWARD") {
-      centerWheels();
       motorsForward();
       currentCommand = "FORWARD";
   } else if (command == "BACKWARD"){
-      centerWheels();
       motorsBackwards();
       currentCommand = "BACKWARD";
   } else {
@@ -206,7 +158,7 @@ void executeCommand(String command) {
 
 
 void setup() {
-  Serial.begin(9600);
+  // Serial.begin(9600);
   Serial.println("[Rover] Initialization...");
   
   initDriveSystem();
@@ -221,7 +173,16 @@ void loop() {
     lastSensorCheckTime = currentTime;
     String ultraSonicSensorArrayCommand = ultraSonicSensorOD();
     if (roverActive) {
-      executeCommand(ultraSonicSensorArrayCommand);
+      Serial.print("WHOAH ");
+      Serial.println(currentCommand);
+      if (currentCommand == "FORWARD" || currentCommand == "OD") {
+        String obstacleCommand = ultraSonicSensorOD();
+        if (obstacleCommand == "FULL_STOP") {
+          executeCommand("FULL_STOP");
+        } else if (currentCommand == "OD" && obstacleCommand == "FORWARD") {
+          executeCommand("FORWARD");
+        }
+      }
     }
   }
   if (WiFi.status() != WL_CONNECTED) {
@@ -233,6 +194,7 @@ void loop() {
     lastRequestTime = currentTime;
     String newCommand = retrieveCommandFromServer(); //USER COMMAND and START/STOP
     if(newCommand == "OD") {
+      currentCommand = "OD";
       roverActive = true;
       Serial.println("[Rover] Received command: " + newCommand);
     } else if(newCommand == "CONTROL_STOP") {

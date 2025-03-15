@@ -12,8 +12,8 @@ extern Servo backRightServo;
 
 const int SERVO_FRONT_LEFT_PIN = 16;
 const int SERVO_FRONT_RIGHT_PIN = 17;
-const int SERVO_BACK_LEFT_PIN = 18;
-const int SERVO_BACK_RIGHT_PIN = 19;
+// const int SERVO_BACK_LEFT_PIN = 18;
+// const int SERVO_BACK_RIGHT_PIN = 19;
 
 // L298N MOTOR SETUP
 const int F_MOTOR_LEFT_IN1 = 2;   // F-Left motor control pin 1
@@ -33,14 +33,16 @@ const int B_MOTOR_RIGHT_IN4 = 32; // B-Right motor control pin 2
 
 // CONSTANTS
 const int CENTER_ANGLE = 90;
-const int RIGHT_ANGLE = 60;
-const int LEFT_ANGLE = 120; 
+const int RIGHT_ANGLE = 30;
+const int LEFT_ANGLE = 150; 
 const int MOVEMENT_DELAY = 1000; 
 
 void initDriveSystem();
 void stopMotors();
 void motorsForward();
 void motorsBackwards();
+void motorsLeft();
+void motorsRight();
 void centerWheels();
 void leftTurn();
 void rightTurn();
