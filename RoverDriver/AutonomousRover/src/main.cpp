@@ -5,7 +5,7 @@
 #include "secrets.h"
 
 // ULTRA SONIC SENSORS
-const int TRIGGER_PIN_C = 18;
+const int TRIGGER_PIN_C = 23;
 const int ECHO_C_PIN = 35;
 const int CRIT_PIN = 21;
 
@@ -17,17 +17,16 @@ const int STOP_DISTANCE = 40;
 const int MAX_DISTANCE = 400;
 
 // CONSTANTS
-const int HTTP_REQUEST_INTERVAL = 1000;
-const int SENSOR_CHECK_INTERVAL = 500;
+const int HTTP_REQUEST_INTERVAL = 500;
 
 // Global Vars
 String currentCommand = "FULL_STOP";
+String lastCommand = "FULL_STOP";
 unsigned long lastRequestTime = 0;
 bool isMoving = false;
 long durationLeft, durationCenter, durationRight;
 float distanceLeft, distanceCenter, distanceRight;
 float fusedDistance;
-unsigned long lastSensorCheckTime = 0;
 bool roverActive = false;
 
 void setupUltrasonicSensors() {
@@ -57,15 +56,13 @@ String ultraSonicSensorOD() {
   Serial.print("cm  C:");
   Serial.print(distanceCenter);
   if (distanceCenter <= STOP_DISTANCE) {
-    // Critical distance - stop immediately
     digitalWrite(CRIT_PIN, HIGH);
-    Serial.print("STOPP");
-    Serial.print(distanceCenter);
+    Serial.println("[Rover] OBSTACLE DETECTED - STOPPING");
     return "FULL_STOP";
   } else {
-    // All clear, continue with current command
     digitalWrite(CRIT_PIN, LOW);
-    return "FORWARD";
+    Serial.println("[Rover] PATH CLEAR");
+    return "FORWARD_SLOWLY";
   }
 }
 
@@ -121,10 +118,12 @@ void connectToWiFi() {
 }
 
 void executeCommand(String command) {
+  lastCommand = currentCommand;
   if (command == "STOP" || command == "FULL_STOP") {
     stopMotors();
     centerWheels();
     isMoving = false;
+    roverActive = false;
     currentCommand = "FULL_STOP";
     Serial.println("[Rover] Stopping...");
     return;
@@ -146,10 +145,14 @@ void executeCommand(String command) {
   } else if (command == "BACKWARD"){
       motorsBackwards();
       currentCommand = "BACKWARD";
+  } else if (command == "FORWARD_SLOWLY"){
+      motorsForwardSlow();
+      currentCommand = "FORWARD_SLOWLY";
   } else {
       centerWheels();
       stopMotors();
       isMoving = false;
+      roverActive = false;
       currentCommand = "FULL_STOP";
       Serial.println("[Rover] Stopping...");
       return;
@@ -158,33 +161,18 @@ void executeCommand(String command) {
 
 
 void setup() {
-  // Serial.begin(9600);
+  Serial.begin(9600);
   Serial.println("[Rover] Initialization...");
   
   initDriveSystem();
   setupUltrasonicSensors();
-
+  connectToWiFi();
   Serial.println("[Rover] Setup Complete");
 }
 
 void loop() {
   unsigned long currentTime = millis();
-  if (currentTime - lastSensorCheckTime >= SENSOR_CHECK_INTERVAL) {
-    lastSensorCheckTime = currentTime;
-    String ultraSonicSensorArrayCommand = ultraSonicSensorOD();
-    if (roverActive) {
-      Serial.print("WHOAH ");
-      Serial.println(currentCommand);
-      if (currentCommand == "FORWARD" || currentCommand == "OD") {
-        String obstacleCommand = ultraSonicSensorOD();
-        if (obstacleCommand == "FULL_STOP") {
-          executeCommand("FULL_STOP");
-        } else if (currentCommand == "OD" && obstacleCommand == "FORWARD") {
-          executeCommand("FORWARD");
-        }
-      }
-    }
-  }
+
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("[Rover] WiFi disconnected. Reconnecting...");
     connectToWiFi();
@@ -196,8 +184,9 @@ void loop() {
     if(newCommand == "OD") {
       currentCommand = "OD";
       roverActive = true;
-      Serial.println("[Rover] Received command: " + newCommand);
-    } else if(newCommand == "CONTROL_STOP") {
+      String obstacleCommand = ultraSonicSensorOD();
+      executeCommand(obstacleCommand);
+    } else if(newCommand == "CONTROL_STOP" || newCommand == "FULL_STOP") {
       roverActive = false;
       executeCommand("FULL_STOP");
     } else {
