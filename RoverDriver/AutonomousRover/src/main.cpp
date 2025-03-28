@@ -3,6 +3,7 @@
 #include <HTTPClient.h>
 #include "MotorDriver.h"
 #include "secrets.h"
+#include <SparkFun_VL53L5CX.h>
 
 // ULTRA SONIC SENSORS
 const int TRIGGER_PIN_C = 23;
@@ -29,41 +30,46 @@ float distanceLeft, distanceCenter, distanceRight;
 float fusedDistance;
 bool roverActive = false;
 
-void setupUltrasonicSensors() {
-  pinMode(CRIT_PIN, OUTPUT);
-  pinMode(TRIGGER_PIN_C, OUTPUT);
-  pinMode(ECHO_C_PIN, INPUT);
-  digitalWrite(TRIGGER_PIN_C, LOW);
-  digitalWrite(CRIT_PIN, LOW);
-  Serial.println("[Rover] US Sensors Init...");
-}
+// TOF INIT
+SparkFun_VL53L5CX myTOFSensor;
+VL53L5CX_ResultsData measurementData;
 
-float triggerSensor(int triggerPin, int echoPin) {
-  digitalWrite(triggerPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(triggerPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(triggerPin, LOW);
-
-  long duration = pulseIn(echoPin, HIGH, 23530);
-  float distance = duration * 0.034 / 2;
-  if (distance == 0 || distance > MAX_DISTANCE) distance = MAX_DISTANCE;
-  return distance;
-}
-
-String ultraSonicSensorOD() {
-  distanceCenter = triggerSensor(TRIGGER_PIN_C, ECHO_C_PIN);
-  Serial.print("cm  C:");
-  Serial.print(distanceCenter);
-  if (distanceCenter <= STOP_DISTANCE) {
-    digitalWrite(CRIT_PIN, HIGH);
-    Serial.println("[Rover] OBSTACLE DETECTED - STOPPING");
-    return "FULL_STOP";
-  } else {
-    digitalWrite(CRIT_PIN, LOW);
-    Serial.println("[Rover] PATH CLEAR");
-    return "FORWARD_SLOWLY";
+void setupTOF() {
+  Wire.begin(21, 22);
+  if(!myTOFSensor.begin()){
+    Serial.println("[ToF] VL53L5CX not detected. Halting.");
+    while (1);
   }
+  myTOFSensor.setResolution(4 * 4); // 4x4 grid
+  myTOFSensor.setRangingFrequency(15); // Hz (max ~15)
+  myTOFSensor.startRanging();
+
+  Serial.println("[ToF] VL53L5CX Initialized");
+}
+
+String tofSensorOD() {
+  if (myTOFSensor.isDataReady()) {
+    myTOFSensor.getRangingData(&measurementData);
+
+    uint8_t centerZone = 5; // Middle of 4x4 grid
+    uint16_t centerDistance = measurementData.distance_mm[centerZone];
+
+    Serial.print("[ToF] Center Distance: ");
+    Serial.println(centerDistance);
+
+    if (centerDistance <= STOP_DISTANCE) {
+      digitalWrite(CRIT_PIN, HIGH);
+      Serial.println("[Rover] OBSTACLE DETECTED - STOPPING");
+      return "FULL_STOP";
+    } else {
+      digitalWrite(CRIT_PIN, LOW);
+      Serial.println("[Rover] PATH CLEAR");
+      return "FORWARD_SLOWLY";
+    }
+  }
+
+  // Fallback to last command if no data ready
+  return currentCommand;
 }
 
 
@@ -165,7 +171,7 @@ void setup() {
   Serial.println("[Rover] Initialization...");
   
   initDriveSystem();
-  setupUltrasonicSensors();
+  setupTOF();
   connectToWiFi();
   Serial.println("[Rover] Setup Complete");
 }
@@ -184,7 +190,7 @@ void loop() {
     if(newCommand == "OD") {
       currentCommand = "OD";
       roverActive = true;
-      String obstacleCommand = ultraSonicSensorOD();
+      String obstacleCommand = tofSensorOD();
       executeCommand(obstacleCommand);
     } else if(newCommand == "CONTROL_STOP" || newCommand == "FULL_STOP") {
       roverActive = false;
