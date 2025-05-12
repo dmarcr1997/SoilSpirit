@@ -3,19 +3,14 @@
 #include <HTTPClient.h>
 #include "MotorDriver.h"
 #include "secrets.h"
-#include <SparkFun_VL53L5CX.h>
-
-// ULTRA SONIC SENSORS
-const int TRIGGER_PIN_C = 23;
-const int ECHO_C_PIN = 35;
+#include <SparkFun_VL53L5CX_Library.h>
 const int CRIT_PIN = 21;
-
 const int LEFT_THRESH = 0.25;
 const int CENTER_THRESH = 0.5;
 const int RIGHT_THRESH = 0.25;
 const int SAFE_DISTANCE = 80;
-const int STOP_DISTANCE = 40;
-const int MAX_DISTANCE = 400;
+const int STOP_DISTANCE = 300;
+const int MAX_DISTANCE = 4000;
 
 // CONSTANTS
 const int HTTP_REQUEST_INTERVAL = 500;
@@ -50,17 +45,43 @@ void setupTOF() {
 String tofSensorOD() {
   if (myTOFSensor.isDataReady()) {
     myTOFSensor.getRangingData(&measurementData);
+    uint32_t leftValue = 0;
+    uint32_t rightValue = 0;
+    uint32_t centerValue = 0;
+    int leftCount = 0, rightCount = 0, centerCount = 0;
+    for (int i = 0; i < 64; i++) {
+      uint16_t distance = measurementData.distance_mm[i]; // get #0-63 rows of TOF sensor 
+      int gridColumn = i % 8; // Break up TOF grid into 8 columns 
+      if (distance <= 0 || distance >= MAX_DISTANCE) continue; //Ignore out of bounds distances
+      if (gridColumn < 3) {
+        leftValue += distance;
+        leftCount++;
+      } else if (gridColumn > 4) {
+        rightValue += distance;
+        rightCount++;
+      } else {
+        centerValue += distance;
+        centerCount++;
+      }
+    } 
+    uint16_t leftAverage = leftCount ? leftValue / leftCount : 9999;
+    uint16_t rightAverage = rightCount ? rightValue / rightCount : 9999;
+    uint16_t centerAverage = centerCount ? centerValue / centerCount : 9999;
 
-    uint8_t centerZone = 5; // Middle of 4x4 grid
-    uint16_t centerDistance = measurementData.distance_mm[centerZone];
-
-    Serial.print("[ToF] Center Distance: ");
-    Serial.println(centerDistance);
-
-    if (centerDistance <= STOP_DISTANCE) {
+    Serial.printf("[ToF] Distances ( L: %d | R: %d | C: %d)\n", leftAverage, rightAverage, centerAverage);
+    
+    if (centerAverage <= STOP_DISTANCE) {
       digitalWrite(CRIT_PIN, HIGH);
-      Serial.println("[Rover] OBSTACLE DETECTED - STOPPING");
+      Serial.println("[Rover] CENTER OBSTACLE DETECTED - STOPPING");
       return "FULL_STOP";
+    } else if (leftAverage <= STOP_DISTANCE) {
+      digitalWrite(CRIT_PIN, HIGH);
+      Serial.println("[Rover] LEFT OBSTACLE DETECTED - TURNING RIGHT");
+      return "TURN_RIGHT";
+    } else if (rightAverage <= STOP_DISTANCE) {
+      digitalWrite(CRIT_PIN, HIGH);
+      Serial.println("[Rover] RIGHT OBSTACLE DETECTED - TURNING LEFT");
+      return "TURN_LEFT";
     } else {
       digitalWrite(CRIT_PIN, LOW);
       Serial.println("[Rover] PATH CLEAR");
@@ -127,7 +148,6 @@ void executeCommand(String command) {
   lastCommand = currentCommand;
   if (command == "STOP" || command == "FULL_STOP") {
     stopMotors();
-    centerWheels();
     isMoving = false;
     roverActive = false;
     currentCommand = "FULL_STOP";
@@ -136,14 +156,10 @@ void executeCommand(String command) {
   }
   isMoving = true;
   if (command == "TURN_LEFT"){ 
-      leftTurn(); 
       motorsLeft();
-      centerWheels();
       currentCommand = "TURN_LEFT";
   } else if (command == "TURN_RIGHT"){
-      rightTurn();
       motorsRight();
-      centerWheels();
       currentCommand = "TURN_RIGHT";
   } else if (command =="FORWARD") {
       motorsForward();
@@ -155,7 +171,6 @@ void executeCommand(String command) {
       motorsForwardSlow();
       currentCommand = "FORWARD_SLOWLY";
   } else {
-      centerWheels();
       stopMotors();
       isMoving = false;
       roverActive = false;
@@ -167,7 +182,7 @@ void executeCommand(String command) {
 
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("[Rover] Initialization...");
   
   initDriveSystem();
