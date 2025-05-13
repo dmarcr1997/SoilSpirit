@@ -62,20 +62,6 @@ void motorsForwardSlow() {
 }
 
 void motorsLeft() {
-  analogWrite(F_MOTOR_LEFT_IN1, 0);
-  analogWrite(F_MOTOR_LEFT_IN2, 225);
-  analogWrite(F_MOTOR_RIGHT_IN3, 0);
-  analogWrite(F_MOTOR_RIGHT_IN4, 225);
-
-  // Back motors
-  analogWrite(B_MOTOR_LEFT_IN1, 225);
-  analogWrite(B_MOTOR_LEFT_IN2, 0);
-  analogWrite(B_MOTOR_RIGHT_IN3, 225);
-  analogWrite(B_MOTOR_RIGHT_IN4, 0);
-  delay(MOVEMENT_DELAY);
-}
-
-void motorsRight() {
   analogWrite(F_MOTOR_LEFT_IN1, 225);
   analogWrite(F_MOTOR_LEFT_IN2, 0);
   analogWrite(F_MOTOR_RIGHT_IN3, 225);
@@ -86,6 +72,20 @@ void motorsRight() {
   analogWrite(B_MOTOR_LEFT_IN2, 225);
   analogWrite(B_MOTOR_RIGHT_IN3, 0);
   analogWrite(B_MOTOR_RIGHT_IN4, 225);
+  delay(MOVEMENT_DELAY);
+}
+
+void motorsRight() {
+  analogWrite(F_MOTOR_LEFT_IN1, 0);
+  analogWrite(F_MOTOR_LEFT_IN2, 225);
+  analogWrite(F_MOTOR_RIGHT_IN3, 0);
+  analogWrite(F_MOTOR_RIGHT_IN4, 225);
+
+  // Back motors
+  analogWrite(B_MOTOR_LEFT_IN1, 225);
+  analogWrite(B_MOTOR_LEFT_IN2, 0);
+  analogWrite(B_MOTOR_RIGHT_IN3, 225);
+  analogWrite(B_MOTOR_RIGHT_IN4, 0);
 }
 
 void motorsBackwards() {

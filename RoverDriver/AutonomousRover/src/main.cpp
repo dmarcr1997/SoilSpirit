@@ -184,7 +184,7 @@ void executeCommand(String command) {
 void setup() {
   Serial.begin(115200);
   Serial.println("[Rover] Initialization...");
-  
+  pinMode(CRIT_PIN, OUTPUT);
   initDriveSystem();
   setupTOF();
   connectToWiFi();
